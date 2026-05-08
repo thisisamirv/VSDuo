@@ -52,7 +52,7 @@ npm run package:marketplace
 After packaging, install the generated VSIX into VS Code:
 
 ```powershell
-code.cmd --install-extension .\vsduo-0.1.2.vsix --force
+code.cmd --install-extension .\vsduo-auth-0.1.0.vsix --force
 ```
 
 Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.
