@@ -17,56 +17,40 @@ Parts of the implementation and supporting ideas were adapted from that project 
 - Handle Duo Verified prompts by entering the requested digits.
 - Copy live TOTP codes for devices that expose `hotp_secret`.
 - Start a detached localhost helper page that stays available during Remote SSH window reloads.
+- Show SSH hosts from the same SSH config used by Remote SSH and connect the current window directly from the VSDuo view.
 - Import and export the existing Auto 2FA data format for compatibility.
 
-## Not Included
+## Add a Device
 
-- Browser tab integration.
-- QR-code scraping from web pages.
-- Any Chrome, Firefox, or WXT browser-extension build.
+When you run `VSDuo: Add Device`, the extension expects a Duo activation code rather than a QR scan. Use the same flow documented in the in-product prompt:
 
-## Development
+1. Go to your organization website and manage Duo devices.
+2. Add a new device.
+3. Choose Duo Mobile.
+4. Choose `I have a tablet`.
+5. Select `Next`.
+6. Choose `Get an activation link instead`.
+7. Enter your email address and send the email.
+8. Open the link in the email.
+9. Copy the activation code from that webpage and paste it into VSDuo.
 
-```powershell
-npm install
-npm run build
-```
+After that, VSDuo asks you to give the device a name such as `Work iPhone` and stores it in VS Code secret storage.
 
-Press `F5` in VS Code from the repository root to launch an Extension Development Host.
+## Remote SSH Integration
 
-## Packaging
+VSDuo integrates with Remote - SSH by reading the same SSH config file that Remote - SSH uses and listing those entries in the `HOSTS` view. The intended flow is to start the SSH connection from VSDuo itself so the helper can be prepared before the window hands off to Remote - SSH.
 
-```powershell
-npm run package
-```
+Use the `HOSTS` view as the entry point for SSH connections:
 
-This builds the extension and creates a `.vsix` package.
+1. Select or confirm the active Duo device in `DEVICES`.
+2. Check pending requests in `PENDING TRANSACTIONS` if needed.
+3. Click the target machine in `HOSTS` to connect the current window.
+4. Let VSDuo start the helper page before Remote - SSH begins the window transition.
 
-To build a VSIX for the Visual Studio Code Marketplace packaging flow, use:
+The main VSDuo view shows devices, pending transactions, and SSH hosts together. SSH hosts should be connected from this view so VSDuo can prepare the Duo helper before the Remote - SSH reconnect flow begins.
 
-```powershell
-npm run package:marketplace
-```
+![VSDuo activity bar with devices, transactions, and hosts](https://raw.githubusercontent.com/thisisamirv/VSDuo/main/media/window1.png)
 
-## Remote SSH Workaround
+When a VSDuo-initiated SSH connection starts, the extension opens the localhost helper page in your browser. Keep that page open during the reconnect so you can approve or deny the Duo prompt even while the VS Code window is reloading.
 
-Remote SSH reloads and recomposes the VS Code window during connection, so activity bar views can disappear for a short time even when the extension is correctly marked as a local UI extension.
-
-VSDuo includes a workaround for that flow:
-
-1. Run `VSDuo: Start Remote SSH Helper` before you begin the SSH connection.
-2. Keep the opened browser page available while VS Code reconnects.
-3. Approve or deny the Duo prompt from that page if the editor window is temporarily unavailable.
-4. Run `VSDuo: Stop Remote SSH Helper` when you are done.
-
-The helper listens only on `127.0.0.1` and keeps the current Duo device material in the helper process memory for that session.
-
-## Installation
-
-After packaging, install the generated VSIX into VS Code:
-
-```powershell
-code.cmd --install-extension .\vsduo-auth-0.1.3.vsix --force
-```
-
-Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.
+![VSDuo helper page in the browser](https://raw.githubusercontent.com/thisisamirv/VSDuo/main/media/window2.png)

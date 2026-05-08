@@ -30,3 +30,12 @@ export interface BrowserExportShape {
     pkey?: string;
     [key: string]: unknown;
 }
+
+export interface SshHost {
+    name: string;
+    hostname?: string;
+    user?: string;
+    port?: string;
+    identityFile?: string;
+    source: "remote-ssh" | "ssh-config";
+}

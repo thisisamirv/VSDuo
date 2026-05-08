@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { DuoDevice, DuoTransaction } from "./types";
+import { DuoDevice, DuoTransaction, SshHost } from "./types";
 
 export class DeviceItem extends vscode.TreeItem {
     public constructor(public readonly device: DuoDevice, isActive: boolean) {
@@ -103,4 +103,51 @@ function formatEpoch(value: unknown): string {
     }
 
     return new Date(epoch * 1000).toLocaleString();
+}
+
+export class HostItem extends vscode.TreeItem {
+    public constructor(public readonly host: SshHost) {
+        super(host.name, vscode.TreeItemCollapsibleState.None);
+        this.description = host.hostname && host.hostname !== host.name ? host.hostname : host.user ? host.user : undefined;
+        this.tooltip = [
+            host.name,
+            host.hostname ? `HostName: ${host.hostname}` : undefined,
+            host.user ? `User: ${host.user}` : undefined,
+            host.port ? `Port: ${host.port}` : undefined,
+            host.identityFile ? `IdentityFile: ${host.identityFile}` : undefined,
+        ].filter((value): value is string => Boolean(value)).join("\n");
+        this.contextValue = "vsduo.host";
+        this.iconPath = new vscode.ThemeIcon("remote");
+        this.command = {
+            command: "vsduo.connectCurrentWindowToSshHost",
+            title: "Connect Current Window to SSH Host",
+            arguments: [this],
+        };
+    }
+}
+
+export class HostTreeProvider implements vscode.TreeDataProvider<HostItem> {
+    private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HostItem | undefined | void>();
+    public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+    private items: HostItem[] = [];
+
+    public setHosts(hosts: SshHost[]): void {
+        this.items = hosts
+            .slice()
+            .sort((left, right) => left.name.localeCompare(right.name))
+            .map((host) => new HostItem(host));
+        this.refresh();
+    }
+
+    public refresh(): void {
+        this.onDidChangeTreeDataEmitter.fire();
+    }
+
+    public getTreeItem(element: HostItem): vscode.TreeItem {
+        return element;
+    }
+
+    public getChildren(): HostItem[] {
+        return this.items;
+    }
 }
