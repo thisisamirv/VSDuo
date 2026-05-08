@@ -56,9 +56,3 @@ code.cmd --install-extension .\vsduo-0.1.2.vsix --force
 ```
 
 Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.
-
-## Publishing
-
-The extension manifest is configured for the `thisisamirv` publisher and GitHub repository.
-
-Before publishing to the Visual Studio Code Marketplace, make sure the `thisisamirv` publisher exists in the Marketplace and that you are authenticated for `vsce publish`.
