@@ -1,0 +1,177 @@
+{
+    "name": "vsduo",
+    "displayName": "VSDuo",
+    "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
+    "version": "0.1.0",
+    "publisher": "local",
+    "license": "MIT",
+    "files": [
+        "dist",
+        "media",
+        "README.md",
+        "LICENSE",
+        "package.json"
+    ],
+    "engines": {
+        "vscode": "^1.99.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "configuration": {
+            "title": "VSDuo",
+            "properties": {
+                "vsduo.refreshIntervalSeconds": {
+                    "type": "number",
+                    "default": 15,
+                    "minimum": 5,
+                    "description": "How often the extension refreshes pending Duo transactions for the active device."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "vsduo.addDevice",
+                "title": "VSDuo: Add Device"
+            },
+            {
+                "command": "vsduo.refreshTransactions",
+                "title": "VSDuo: Refresh Transactions"
+            },
+            {
+                "command": "vsduo.setActiveDevice",
+                "title": "VSDuo: Set Active Device"
+            },
+            {
+                "command": "vsduo.approveTransaction",
+                "title": "VSDuo: Approve Transaction"
+            },
+            {
+                "command": "vsduo.denyTransaction",
+                "title": "VSDuo: Deny Transaction"
+            },
+            {
+                "command": "vsduo.copyTotp",
+                "title": "VSDuo: Copy TOTP"
+            },
+            {
+                "command": "vsduo.importData",
+                "title": "VSDuo: Import Data"
+            },
+            {
+                "command": "vsduo.exportData",
+                "title": "VSDuo: Export Data"
+            },
+            {
+                "command": "vsduo.exportTotpUris",
+                "title": "VSDuo: Export TOTP URIs"
+            },
+            {
+                "command": "vsduo.clearData",
+                "title": "VSDuo: Clear Data"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "vsduo",
+                    "title": "VSDuo",
+                    "icon": "media/shield.svg"
+                }
+            ]
+        },
+        "views": {
+            "vsduo": [
+                {
+                    "id": "vsduo.devices",
+                    "name": "Devices",
+                    "icon": "media/shield.svg"
+                },
+                {
+                    "id": "vsduo.transactions",
+                    "name": "Pending Transactions",
+                    "icon": "media/shield.svg"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "vsduo.addDevice",
+                    "when": "view == vsduo.devices",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsduo.refreshTransactions",
+                    "when": "view == vsduo.transactions",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "vsduo.setActiveDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.device",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsduo.copyTotp",
+                    "when": "view == vsduo.devices && viewItem == vsduo.deviceHasTotp",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsduo.approveTransaction",
+                    "when": "view == vsduo.transactions && viewItem == vsduo.transaction",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsduo.denyTransaction",
+                    "when": "view == vsduo.transactions && viewItem == vsduo.transaction",
+                    "group": "inline@2"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "vsduo.addDevice"
+                },
+                {
+                    "command": "vsduo.refreshTransactions"
+                },
+                {
+                    "command": "vsduo.setActiveDevice"
+                },
+                {
+                    "command": "vsduo.importData"
+                },
+                {
+                    "command": "vsduo.exportData"
+                },
+                {
+                    "command": "vsduo.exportTotpUris"
+                },
+                {
+                    "command": "vsduo.clearData"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "build": "tsc -p ./tsconfig.json",
+        "watch": "tsc -w -p ./tsconfig.json",
+        "vscode:prepublish": "npm run build",
+        "package": "npm run build && node scripts/package-vsix.cjs"
+    },
+    "dependencies": {
+        "otplib": "^13.4.0"
+    },
+    "devDependencies": {
+        "@types/node": "^25.6.2",
+        "@types/vscode": "^1.99.1",
+        "typescript": "^6.0.3",
+        "yazl": "^3.3.1"
+    }
+}

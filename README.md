@@ -1,0 +1,36 @@
+# VSDuo
+
+VSDuo is a VS Code extension for managing Duo devices from the editor. It polls pending Duo transactions and lets you approve, deny, or copy TOTP codes without any browser-extension code in this repo.
+
+## Features
+
+- Add a Duo device from an activation code.
+- Store Duo device material in VS Code secret storage.
+- View devices and pending transactions in the activity bar.
+- Approve or deny pending Duo transactions.
+- Handle Duo Verified prompts by entering the requested digits.
+- Copy live TOTP codes for devices that expose `hotp_secret`.
+- Import and export the existing Auto 2FA data format for compatibility.
+
+## Not Included
+
+- Browser tab integration.
+- QR-code scraping from web pages.
+- Any Chrome, Firefox, or WXT browser-extension build.
+
+## Development
+
+```powershell
+npm install
+npm run build
+```
+
+Press `F5` in VS Code from the repository root to launch an Extension Development Host.
+
+## Packaging
+
+```powershell
+npm run package
+```
+
+This builds the extension and creates a `.vsix` package.
