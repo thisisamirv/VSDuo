@@ -25,7 +25,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             if (!activeDevice) {
                 currentTransactions = [];
                 transactionsProvider.setTransactions([]);
-                statusBar.text = "$(shield) VSDuo: no device";
+                statusBar.text = "$(icon) VSDuo: no device";
                 statusBar.tooltip = "Run VSDuo: Add Device to configure Duo.";
                 statusBar.show();
                 return;
@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
             currentTransactions = await client.listTransactions(activeDevice);
             transactionsProvider.setTransactions(currentTransactions);
-            statusBar.text = `$(shield) ${activeDevice.name}: ${currentTransactions.length} pending`;
+            statusBar.text = `$(icon) ${activeDevice.name}: ${currentTransactions.length} pending`;
             statusBar.tooltip = `${activeDevice.host}\nClick to refresh Duo transactions.`;
             statusBar.show();
         } catch (error) {
@@ -71,6 +71,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 return;
             }
 
+            const deviceName = await vscode.window.showInputBox({
+                prompt: "Enter a name for this Duo device",
+                placeHolder: "Work iPhone",
+                ignoreFocusOut: true,
+                validateInput: (value) => value.trim().length ? undefined : "Device name is required.",
+            });
+            if (!deviceName) {
+                return;
+            }
+
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
@@ -80,7 +90,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 async (progress) => {
                     progress.report({ message: "Activating Duo device..." });
                     const data = await store.getData();
-                    const device = await client.activateDevice(activationCode, data.devices.length);
+                    const device = await client.activateDevice(activationCode, deviceName);
                     await store.addDevice(device);
                 }
             );
@@ -111,6 +121,45 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             }
 
             await syncViews(true);
+        }),
+        vscode.commands.registerCommand("vsduo.renameDevice", async (item?: DeviceItem) => {
+            const device = item?.device ?? await pickDevice(store, "Select the Duo device to rename");
+            if (!device) {
+                return;
+            }
+
+            const nextName = await vscode.window.showInputBox({
+                prompt: "Enter a new name for this Duo device",
+                value: device.name,
+                ignoreFocusOut: true,
+                validateInput: (value) => value.trim().length ? undefined : "Device name is required.",
+            });
+            if (!nextName) {
+                return;
+            }
+
+            await store.renameDevice(device.pkey, nextName.trim());
+            await syncViews(true);
+            void vscode.window.showInformationMessage(`Renamed device to ${nextName.trim()}.`);
+        }),
+        vscode.commands.registerCommand("vsduo.removeDevice", async (item?: DeviceItem) => {
+            const device = item?.device ?? await pickDevice(store, "Select the Duo device to remove");
+            if (!device) {
+                return;
+            }
+
+            const answer = await vscode.window.showWarningMessage(
+                `Remove Duo device ${device.name}?`,
+                { modal: true },
+                "Remove"
+            );
+            if (answer !== "Remove") {
+                return;
+            }
+
+            await store.removeDevice(device.pkey);
+            await syncViews(true);
+            void vscode.window.showInformationMessage(`Removed device ${device.name}.`);
         }),
         vscode.commands.registerCommand("vsduo.approveTransaction", async (item?: TransactionItem) => {
             const activeDevice = await getActiveDevice(store);
@@ -259,6 +308,24 @@ async function pickTransaction(transactions: DuoTransaction[]): Promise<DuoTrans
         { placeHolder: "Select a Duo transaction" }
     );
     return pick?.transaction;
+}
+
+async function pickDevice(store: DeviceStore, placeHolder: string): Promise<DuoDevice | undefined> {
+    const data = await store.getData();
+    if (!data.devices.length) {
+        void vscode.window.showInformationMessage("No Duo devices configured.");
+        return undefined;
+    }
+
+    const pick = await vscode.window.showQuickPick(
+        data.devices.map((device) => ({
+            label: device.name,
+            description: device.host,
+            device,
+        })),
+        { placeHolder }
+    );
+    return pick?.device;
 }
 
 function errorToString(error: unknown): string {

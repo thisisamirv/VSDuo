@@ -2,8 +2,9 @@
     "name": "vsduo",
     "displayName": "VSDuo",
     "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "publisher": "local",
+    "icon": "media/icon.png",
     "license": "MIT",
     "files": [
         "dist",
@@ -48,6 +49,14 @@
                 "title": "VSDuo: Set Active Device"
             },
             {
+                "command": "vsduo.renameDevice",
+                "title": "VSDuo: Rename Device"
+            },
+            {
+                "command": "vsduo.removeDevice",
+                "title": "VSDuo: Remove Device"
+            },
+            {
                 "command": "vsduo.approveTransaction",
                 "title": "VSDuo: Approve Transaction"
             },
@@ -81,7 +90,7 @@
                 {
                     "id": "vsduo",
                     "title": "VSDuo",
-                    "icon": "media/shield.svg"
+                    "icon": "media/icon.svg"
                 }
             ]
         },
@@ -90,12 +99,12 @@
                 {
                     "id": "vsduo.devices",
                     "name": "Devices",
-                    "icon": "media/shield.svg"
+                    "icon": "media/icon.svg"
                 },
                 {
                     "id": "vsduo.transactions",
                     "name": "Pending Transactions",
-                    "icon": "media/shield.svg"
+                    "icon": "media/icon.svg"
                 }
             ]
         },
@@ -119,9 +128,34 @@
                     "group": "inline"
                 },
                 {
+                    "command": "vsduo.setActiveDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.deviceHasTotp",
+                    "group": "inline"
+                },
+                {
                     "command": "vsduo.copyTotp",
                     "when": "view == vsduo.devices && viewItem == vsduo.deviceHasTotp",
                     "group": "inline"
+                },
+                {
+                    "command": "vsduo.renameDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.device",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "vsduo.renameDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.deviceHasTotp",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "vsduo.removeDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.device",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "vsduo.removeDevice",
+                    "when": "view == vsduo.devices && viewItem == vsduo.deviceHasTotp",
+                    "group": "navigation@2"
                 },
                 {
                     "command": "vsduo.approveTransaction",
@@ -143,6 +177,12 @@
                 },
                 {
                     "command": "vsduo.setActiveDevice"
+                },
+                {
+                    "command": "vsduo.renameDevice"
+                },
+                {
+                    "command": "vsduo.removeDevice"
                 },
                 {
                     "command": "vsduo.importData"

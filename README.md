@@ -34,3 +34,13 @@ npm run package
 ```
 
 This builds the extension and creates a `.vsix` package.
+
+## Installation
+
+After packaging, install the generated VSIX into VS Code:
+
+```powershell
+code.cmd --install-extension .\vsduo-0.1.1.vsix --force
+```
+
+Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.

@@ -5,7 +5,7 @@ import { DuoDevice, DuoTransaction } from "./types";
 const subtle = webcrypto.subtle;
 
 export class DuoClient {
-    public async activateDevice(rawCode: string, existingDeviceCount: number): Promise<DuoDevice> {
+    public async activateDevice(rawCode: string, deviceName: string): Promise<DuoDevice> {
         const { identifier, host } = parseActivationCode(rawCode);
 
         const keyPair = await subtle.generateKey(
@@ -39,11 +39,10 @@ export class DuoClient {
             throw new Error(payload.stat === "FAIL" ? "Activation code expired or rejected by Duo." : `Activation failed with status ${response.status}.`);
         }
 
-        const model = String(activationInfo.model);
         const platform = String(activationInfo.platform);
         const device = payload.response as DuoDevice;
         delete device.customer_logo;
-        device.name = `${model} (#${existingDeviceCount + 1})`;
+        device.name = deviceName.trim();
         device.clickLevel = device.clickLevel ?? "2";
         device.host = host;
         device.publicRaw = publicRaw;

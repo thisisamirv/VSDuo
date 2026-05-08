@@ -22,7 +22,7 @@ export class TransactionItem extends vscode.TreeItem {
         this.description = details;
         this.tooltip = `${label}\n${details}`;
         this.contextValue = "vsduo.transaction";
-        this.iconPath = new vscode.ThemeIcon(transaction.step_up_code_info ? "shield" : "pass-filled");
+        this.iconPath = new vscode.ThemeIcon(transaction.step_up_code_info ? "icon" : "pass-filled");
     }
 }
 

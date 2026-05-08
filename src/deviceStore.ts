@@ -46,6 +46,36 @@ export class DeviceStore {
         return next;
     }
 
+    public async renameDevice(pkey: string, name: string): Promise<StoredDeviceData> {
+        const data = await this.getData();
+        const devices = data.devices.map((device) => device.pkey === pkey ? { ...device, name } : device);
+        if (!devices.some((device) => device.pkey === pkey)) {
+            throw new Error(`Unknown device: ${pkey}`);
+        }
+
+        const next: StoredDeviceData = {
+            ...data,
+            devices,
+        };
+        await this.saveData(next);
+        return next;
+    }
+
+    public async removeDevice(pkey: string): Promise<StoredDeviceData> {
+        const data = await this.getData();
+        const devices = data.devices.filter((device) => device.pkey !== pkey);
+        if (devices.length === data.devices.length) {
+            throw new Error(`Unknown device: ${pkey}`);
+        }
+
+        const next: StoredDeviceData = {
+            activeDevice: data.activeDevice === pkey ? devices[0]?.pkey ?? -1 : data.activeDevice,
+            devices,
+        };
+        await this.saveData(next);
+        return next;
+    }
+
     public async clear(): Promise<void> {
         await this.context.secrets.delete(STORAGE_KEY);
     }
