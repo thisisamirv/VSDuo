@@ -49,8 +49,8 @@ Use the `HOSTS` view as the entry point for SSH connections:
 
 The main VSDuo view shows devices, pending transactions, and SSH hosts together. SSH hosts should be connected from this view so VSDuo can prepare the Duo helper before the Remote - SSH reconnect flow begins.
 
-![VSDuo activity bar with devices, transactions, and hosts](https://github.com/thisisamirv/VSDuo/blob/master/media/window1.png)
+![VSDuo activity bar with devices, transactions, and hosts](https://raw.githubusercontent.com/thisisamirv/VSDuo/refs/heads/master/media/window1.png)
 
 When a VSDuo-initiated SSH connection starts, the extension opens the localhost helper page in your browser. Keep that page open during the reconnect so you can approve or deny the Duo prompt even while the VS Code window is reloading.
 
-![VSDuo helper page in the browser](https://github.com/thisisamirv/VSDuo/blob/master/media/window2.png)
+![VSDuo helper page in the browser](https://raw.githubusercontent.com/thisisamirv/VSDuo/refs/heads/master/media/window2.png)
