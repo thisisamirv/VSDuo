@@ -63,6 +63,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.registerTreeDataProvider("vsduo.devices", devicesProvider),
         vscode.window.registerTreeDataProvider("vsduo.transactions", transactionsProvider),
         vscode.commands.registerCommand("vsduo.addDevice", async () => {
+            const continueAddDevice = await vscode.window.showInformationMessage(
+                "Get a Duo activation code before continuing.",
+                {
+                    modal: true,
+                    detail:
+                        "1. Go to your organization website and manage Duo devices.\n" +
+                        "2. Add a new device.\n" +
+                        "3. Choose Duo Mobile.\n" +
+                        "4. Choose 'I have a tablet'.\n" +
+                        "5. Select Next.\n" +
+                        "6. Choose 'Get an activation link instead'.\n" +
+                        "7. Enter your email address and send the email.\n" +
+                        "8. Open the link in the email.\n" +
+                        "9. Copy the activation code from that webpage and paste it here."
+                },
+                "Continue"
+            );
+            if (continueAddDevice !== "Continue") {
+                return;
+            }
+
             const activationCode = await vscode.window.showInputBox({
                 prompt: "Paste the Duo activation code in the format XXXXXXXXXXXXXXXXXXXX-encodedHost",
                 ignoreFocusOut: true,

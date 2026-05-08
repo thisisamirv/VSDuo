@@ -2,10 +2,30 @@
     "name": "vsduo",
     "displayName": "VSDuo",
     "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
-    "version": "0.1.1",
-    "publisher": "local",
+    "version": "0.1.2",
+    "publisher": "thisisamirv",
     "icon": "media/icon.png",
-    "license": "MIT",
+    "license": "SEE LICENSE IN LICENSE",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/thisisamirv/VSDuo.git"
+    },
+    "homepage": "https://github.com/thisisamirv/VSDuo",
+    "bugs": {
+        "url": "https://github.com/thisisamirv/VSDuo/issues"
+    },
+    "keywords": [
+        "duo",
+        "2fa",
+        "mfa",
+        "totp",
+        "authentication",
+        "security"
+    ],
+    "galleryBanner": {
+        "color": "#3B88C3",
+        "theme": "light"
+    },
     "files": [
         "dist",
         "media",
@@ -203,12 +223,15 @@
         "build": "tsc -p ./tsconfig.json",
         "watch": "tsc -w -p ./tsconfig.json",
         "vscode:prepublish": "npm run build",
-        "package": "npm run build && node scripts/package-vsix.cjs"
+        "package": "npm run build && node scripts/package-vsix.cjs",
+        "package:marketplace": "npm run build && vsce package",
+        "publish:marketplace": "npm run build && vsce publish"
     },
     "dependencies": {
         "otplib": "^13.4.0"
     },
     "devDependencies": {
+        "@vscode/vsce": "^3.6.2",
         "@types/node": "^25.6.2",
         "@types/vscode": "^1.99.1",
         "typescript": "^6.0.3",

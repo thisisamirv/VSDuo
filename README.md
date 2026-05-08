@@ -41,12 +41,24 @@ npm run package
 
 This builds the extension and creates a `.vsix` package.
 
+To build a VSIX for the Visual Studio Code Marketplace packaging flow, use:
+
+```powershell
+npm run package:marketplace
+```
+
 ## Installation
 
 After packaging, install the generated VSIX into VS Code:
 
 ```powershell
-code.cmd --install-extension .\vsduo-0.1.1.vsix --force
+code.cmd --install-extension .\vsduo-0.1.2.vsix --force
 ```
 
 Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.
+
+## Publishing
+
+The extension manifest is configured for the `thisisamirv` publisher and GitHub repository.
+
+Before publishing to the Visual Studio Code Marketplace, make sure the `thisisamirv` publisher exists in the Marketplace and that you are authenticated for `vsce publish`.
