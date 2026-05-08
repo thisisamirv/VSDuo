@@ -2,7 +2,7 @@
     "name": "vsduo-auth",
     "displayName": "VSDuo Auth",
     "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "publisher": "thisisamirv",
     "icon": "media/icon.png",
     "license": "SEE LICENSE IN LICENSE",
@@ -29,6 +29,7 @@
     "files": [
         "dist",
         "media",
+        "node_modules",
         "README.md",
         "LICENSE",
         "package.json"
