@@ -224,14 +224,13 @@
         "watch": "tsc -w -p ./tsconfig.json",
         "vscode:prepublish": "npm run build",
         "package": "npm run build && node scripts/package-vsix.cjs",
-        "package:marketplace": "npm run build && vsce package",
-        "publish:marketplace": "npm run build && vsce publish"
+        "package:marketplace": "npm run build && npx -y @vscode/vsce@3.9.1 package",
+        "publish:marketplace": "npm run build && npx -y @vscode/vsce@3.9.1 publish"
     },
     "dependencies": {
         "otplib": "^13.4.0"
     },
     "devDependencies": {
-        "@vscode/vsce": "^3.6.2",
         "@types/node": "^25.6.2",
         "@types/vscode": "^1.99.1",
         "typescript": "^6.0.3",
