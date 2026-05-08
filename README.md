@@ -2,6 +2,12 @@
 
 VSDuo is a VS Code extension for managing Duo devices from the editor. It polls pending Duo transactions and lets you approve, deny, or copy TOTP codes without any browser-extension code in this repo.
 
+## Attribution
+
+This project is inspired by [Auto-2FA](https://github.com/FreshSupaSulley/Auto-2FA/).
+
+Parts of the implementation and supporting ideas were adapted from that project and used here as part of this VS Code extension.
+
 ## Features
 
 - Add a Duo device from an activation code.
