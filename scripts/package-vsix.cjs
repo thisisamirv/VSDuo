@@ -12,6 +12,7 @@ const outPath = outArgIndex >= 0 && process.argv[outArgIndex + 1]
     : path.join(repoRoot, `${packageJson.name}-${packageJson.version}.vsix`);
 
 const zip = new ZipFile();
+const packagedPaths = new Set();
 
 for (const requiredPath of ["dist", "media", "README.md", "LICENSE", "package.json"]) {
     const absolutePath = path.join(repoRoot, requiredPath);
@@ -30,6 +31,10 @@ for (const filePath of walkDirectory(path.join(repoRoot, "dist"))) {
 for (const filePath of walkDirectory(path.join(repoRoot, "media"))) {
     const relative = path.relative(repoRoot, filePath).replace(/\\/g, "/");
     zip.addFile(filePath, `extension/${relative}`);
+}
+
+for (const dependencyName of Object.keys(packageJson.dependencies ?? {})) {
+    addDependencyTree(dependencyName);
 }
 
 zip.addFile(path.join(repoRoot, "package.json"), "extension/package.json");
@@ -57,6 +62,49 @@ function walkDirectory(directoryPath) {
 
 function ensureDirectory(directoryPath) {
     fs.mkdirSync(directoryPath, { recursive: true });
+}
+
+function addDependencyTree(packageName) {
+    const manifestPath = resolveDependencyManifestPath(packageName);
+    if (packagedPaths.has(manifestPath)) {
+        return;
+    }
+
+    packagedPaths.add(manifestPath);
+
+    const packageRoot = path.dirname(manifestPath);
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    addPackageDirectory(packageRoot);
+
+    for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+        addDependencyTree(dependencyName);
+    }
+}
+
+function resolveDependencyManifestPath(packageName) {
+    const entryPath = require.resolve(packageName, { paths: [repoRoot] });
+    let currentDirectory = path.dirname(entryPath);
+
+    while (currentDirectory !== path.dirname(currentDirectory)) {
+        const candidate = path.join(currentDirectory, "package.json");
+        if (fs.existsSync(candidate)) {
+            const manifest = JSON.parse(fs.readFileSync(candidate, "utf8"));
+            if (manifest.name === packageName) {
+                return candidate;
+            }
+        }
+
+        currentDirectory = path.dirname(currentDirectory);
+    }
+
+    throw new Error(`Unable to find package.json for dependency: ${packageName}`);
+}
+
+function addPackageDirectory(packageRoot) {
+    for (const filePath of walkDirectory(packageRoot)) {
+        const relative = path.relative(repoRoot, filePath).replace(/\\/g, "/");
+        zip.addFile(filePath, `extension/${relative}`);
+    }
 }
 
 function xmlEscape(value) {
