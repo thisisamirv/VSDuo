@@ -119,6 +119,9 @@ function xmlEscape(value) {
 function renderVsixManifest(pkg) {
     const categories = Array.isArray(pkg.categories) ? pkg.categories.join(",") : "";
     const engine = pkg.engines && pkg.engines.vscode ? pkg.engines.vscode : "*";
+    const extensionKind = Array.isArray(pkg.extensionKind) && pkg.extensionKind.length
+        ? pkg.extensionKind.join(",")
+        : "workspace";
     return `<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
@@ -132,7 +135,7 @@ function renderVsixManifest(pkg) {
       <Property Id="Microsoft.VisualStudio.Code.Engine" Value="${xmlEscape(engine)}" />
       <Property Id="Microsoft.VisualStudio.Code.ExtensionDependencies" Value="" />
       <Property Id="Microsoft.VisualStudio.Code.ExtensionPack" Value="" />
-      <Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="workspace" />
+    <Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="${xmlEscape(extensionKind)}" />
       <Property Id="Microsoft.VisualStudio.Code.LocalizedLanguages" Value="" />
       <Property Id="Microsoft.VisualStudio.Code.EnabledApiProposals" Value="" />
       <Property Id="Microsoft.VisualStudio.Code.ExecutesCode" Value="true" />

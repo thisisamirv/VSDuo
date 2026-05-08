@@ -2,7 +2,7 @@
     "name": "vsduo-auth",
     "displayName": "VSDuo Auth",
     "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
-    "version": "0.1.1",
+    "version": "0.1.3",
     "publisher": "thisisamirv",
     "icon": "media/icon.png",
     "license": "SEE LICENSE IN LICENSE",
@@ -37,6 +37,9 @@
     "engines": {
         "vscode": "^1.99.0"
     },
+    "extensionKind": [
+        "ui"
+    ],
     "categories": [
         "Other"
     ],
@@ -53,6 +56,13 @@
                     "default": 15,
                     "minimum": 5,
                     "description": "How often the extension refreshes pending Duo transactions for the active device."
+                },
+                "vsduo.remoteHelperPort": {
+                    "type": "number",
+                    "default": 47631,
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "description": "Localhost port used by the VSDuo Remote SSH helper browser page."
                 }
             }
         },
@@ -64,6 +74,18 @@
             {
                 "command": "vsduo.refreshTransactions",
                 "title": "VSDuo: Refresh Transactions"
+            },
+            {
+                "command": "vsduo.startRemoteHelper",
+                "title": "VSDuo: Start Remote SSH Helper"
+            },
+            {
+                "command": "vsduo.openRemoteHelper",
+                "title": "VSDuo: Open Remote SSH Helper"
+            },
+            {
+                "command": "vsduo.stopRemoteHelper",
+                "title": "VSDuo: Stop Remote SSH Helper"
             },
             {
                 "command": "vsduo.setActiveDevice",
@@ -195,6 +217,15 @@
                 },
                 {
                     "command": "vsduo.refreshTransactions"
+                },
+                {
+                    "command": "vsduo.startRemoteHelper"
+                },
+                {
+                    "command": "vsduo.openRemoteHelper"
+                },
+                {
+                    "command": "vsduo.stopRemoteHelper"
                 },
                 {
                     "command": "vsduo.setActiveDevice"

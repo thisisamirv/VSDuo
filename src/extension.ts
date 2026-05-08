@@ -1,8 +1,17 @@
+import { fork } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { DeviceStore } from "./deviceStore";
 import { DuoClient } from "./duoClient";
 import { DeviceItem, DeviceTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
-import { DuoDevice, DuoTransaction } from "./types";
+import { DuoDevice, DuoTransaction, StoredDeviceData } from "./types";
+
+interface RemoteHelperState {
+    port: number;
+    token: string;
+}
+
+const REMOTE_HELPER_STATE_KEY = "vsduo.remoteHelper";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     const store = new DeviceStore(context);
@@ -121,6 +130,44 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }),
         vscode.commands.registerCommand("vsduo.refreshTransactions", async () => {
             await syncViews(true);
+        }),
+        vscode.commands.registerCommand("vsduo.startRemoteHelper", async () => {
+            const state = await ensureRemoteHelperRunning(context, store);
+            await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(state)));
+            void vscode.window.showInformationMessage("Opened the VSDuo Remote SSH helper in your browser.");
+        }),
+        vscode.commands.registerCommand("vsduo.openRemoteHelper", async () => {
+            const state = context.globalState.get<RemoteHelperState>(REMOTE_HELPER_STATE_KEY);
+            if (!state || !(await pingRemoteHelper(state.port))) {
+                const started = await ensureRemoteHelperRunning(context, store);
+                await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(started)));
+                return;
+            }
+
+            await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(state)));
+        }),
+        vscode.commands.registerCommand("vsduo.stopRemoteHelper", async () => {
+            const state = context.globalState.get<RemoteHelperState>(REMOTE_HELPER_STATE_KEY);
+            if (!state || !(await pingRemoteHelper(state.port))) {
+                await context.globalState.update(REMOTE_HELPER_STATE_KEY, undefined);
+                void vscode.window.showInformationMessage("The VSDuo Remote SSH helper is not running.");
+                return;
+            }
+
+            const response = await fetch(`http://127.0.0.1:${state.port}/api/stop`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    "x-vsduo-token": state.token,
+                },
+                body: "{}",
+            });
+            if (!response.ok) {
+                throw new Error(`Unable to stop helper (${response.status}).`);
+            }
+
+            await context.globalState.update(REMOTE_HELPER_STATE_KEY, undefined);
+            void vscode.window.showInformationMessage("Stopped the VSDuo Remote SSH helper.");
         }),
         vscode.commands.registerCommand("vsduo.setActiveDevice", async (item?: DeviceItem) => {
             if (item) {
@@ -351,4 +398,76 @@ async function pickDevice(store: DeviceStore, placeHolder: string): Promise<DuoD
 
 function errorToString(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
+}
+
+async function ensureRemoteHelperRunning(context: vscode.ExtensionContext, store: DeviceStore): Promise<RemoteHelperState> {
+    const existing = context.globalState.get<RemoteHelperState>(REMOTE_HELPER_STATE_KEY);
+    if (existing && await pingRemoteHelper(existing.port)) {
+        return existing;
+    }
+
+    const data = await store.getData();
+    if (!data.devices.length) {
+        throw new Error("Add a Duo device before starting the Remote SSH helper.");
+    }
+
+    const port = vscode.workspace.getConfiguration("vsduo").get<number>("remoteHelperPort", 47631);
+    if (await pingRemoteHelper(port)) {
+        throw new Error(`Port ${port} is already in use by another process. Change vsduo.remoteHelperPort or stop the existing process.`);
+    }
+
+    const token = randomBytes(24).toString("hex");
+    const helperPath = vscode.Uri.joinPath(context.extensionUri, "dist", "helper.js").fsPath;
+    const payload = encodeHelperPayload(data);
+
+    const child = fork(helperPath, [], {
+        detached: true,
+        execArgv: [],
+        stdio: "ignore",
+        env: {
+            ...process.env,
+            VSDUO_HELPER_DATA: payload,
+            VSDUO_HELPER_PORT: String(port),
+            VSDUO_HELPER_TOKEN: token,
+        },
+    });
+    child.unref();
+
+    const state: RemoteHelperState = { port, token };
+    await waitForRemoteHelper(port);
+    await context.globalState.update(REMOTE_HELPER_STATE_KEY, state);
+    return state;
+}
+
+function encodeHelperPayload(data: StoredDeviceData): string {
+    return Buffer.from(JSON.stringify(data), "utf8").toString("base64");
+}
+
+function getRemoteHelperUrl(state: RemoteHelperState): string {
+    return `http://127.0.0.1:${state.port}/`;
+}
+
+async function waitForRemoteHelper(port: number): Promise<void> {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 5000) {
+        if (await pingRemoteHelper(port)) {
+            return;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    throw new Error("The VSDuo Remote SSH helper did not start within 5 seconds.");
+}
+
+async function pingRemoteHelper(port: number): Promise<boolean> {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1000);
+        const response = await fetch(`http://127.0.0.1:${port}/api/ping`, { signal: controller.signal });
+        clearTimeout(timeout);
+        return response.ok;
+    } catch {
+        return false;
+    }
 }
