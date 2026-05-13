@@ -258,41 +258,192 @@ function renderPage(token: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VSDuo Remote Helper</title>
   <style>
-    :root { color-scheme: light; --bg: #f3efe7; --panel: #fffaf2; --line: #d8c8ae; --text: #1f1a14; --muted: #6f6557; --accent: #b96333; --accent-strong: #94471b; --danger: #a02f23; --success: #206245; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: var(--text); background: radial-gradient(circle at top left, rgba(185, 99, 51, 0.18), transparent 28%), linear-gradient(180deg, #f8f3eb 0%, var(--bg) 100%); min-height: 100vh; }
-    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: end; margin-bottom: 24px; }
-    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.1rem); line-height: 1; }
-    p { margin: 0; color: var(--muted); max-width: 42rem; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    button { border: 1px solid transparent; background: var(--accent); color: white; padding: 10px 16px; border-radius: 999px; cursor: pointer; font: inherit; }
-    button.secondary { background: transparent; color: var(--text); border-color: var(--line); }
-    button.danger { background: var(--danger); }
-    .meta { margin-top: 12px; font-size: 0.95rem; color: var(--muted); }
-    .banner { margin: 18px 0 26px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 250, 242, 0.9); color: var(--muted); }
-    .grid { display: grid; gap: 18px; }
-    .card { background: rgba(255, 250, 242, 0.92); border: 1px solid var(--line); border-radius: 24px; padding: 18px; box-shadow: 0 18px 50px rgba(51, 34, 12, 0.07); }
-    .card-header { display: flex; justify-content: space-between; gap: 16px; align-items: start; flex-wrap: wrap; }
-    .card h2 { margin: 0; font-size: 1.5rem; }
-    .host { color: var(--muted); font-size: 0.95rem; margin-top: 4px; }
-    .totp { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: rgba(32, 98, 69, 0.12); color: var(--success); font-weight: 700; letter-spacing: 0.08em; }
-    .error { margin-top: 12px; color: var(--danger); }
-    .transaction-list { margin-top: 16px; display: grid; gap: 12px; }
-    .transaction { border: 1px solid rgba(216, 200, 174, 0.8); border-radius: 18px; padding: 14px; background: rgba(255, 255, 255, 0.75); }
-    .transaction-title { font-weight: 700; }
-    .transaction-details { margin-top: 6px; color: var(--muted); font-size: 0.95rem; }
-    .transaction-actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .empty { color: var(--muted); padding: 12px 0 2px; }
-    .flash { min-height: 1.5rem; margin-top: 10px; color: var(--accent-strong); }
+        :root {
+            color-scheme: light dark;
+            --bg: #f5f0e7;
+            --bg-secondary: #efe6d7;
+            --panel: rgba(255, 250, 242, 0.82);
+            --panel-strong: rgba(255, 252, 247, 0.94);
+            --line: rgba(122, 96, 60, 0.18);
+            --line-strong: rgba(122, 96, 60, 0.28);
+            --text: #1f1a14;
+            --muted: #685d4f;
+            --accent: #b96333;
+            --accent-hover: #9c4c21;
+            --accent-soft: rgba(185, 99, 51, 0.12);
+            --danger: #a02f23;
+            --danger-soft: rgba(160, 47, 35, 0.12);
+            --success: #206245;
+            --success-soft: rgba(32, 98, 69, 0.12);
+            --shadow: 0 22px 60px rgba(51, 34, 12, 0.10);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #151515;
+                --bg-secondary: #1e1d1a;
+                --panel: rgba(33, 31, 28, 0.82);
+                --panel-strong: rgba(38, 36, 33, 0.94);
+                --line: rgba(234, 214, 185, 0.12);
+                --line-strong: rgba(234, 214, 185, 0.2);
+                --text: #f3ede5;
+                --muted: #c0b3a2;
+                --accent: #e08a56;
+                --accent-hover: #f09a67;
+                --accent-soft: rgba(224, 138, 86, 0.16);
+                --danger: #f07c6d;
+                --danger-soft: rgba(240, 124, 109, 0.16);
+                --success: #68c297;
+                --success-soft: rgba(104, 194, 151, 0.16);
+                --shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html { background: var(--bg); }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+                radial-gradient(circle at bottom right, color-mix(in srgb, var(--success) 12%, transparent), transparent 32%),
+                linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 60%, var(--bg)) 0%, var(--bg) 100%);
+        }
+        main { max-width: 1040px; margin: 0 auto; padding: 36px 20px 72px; }
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: end;
+            margin-bottom: 24px;
+        }
+        h1 { margin: 0 0 10px; font-size: clamp(2.2rem, 4vw, 3.4rem); line-height: 0.96; letter-spacing: -0.03em; }
+        p { margin: 0; color: var(--muted); max-width: 46rem; font-size: 1.03rem; line-height: 1.45; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+            color: var(--muted);
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+        .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+        button {
+            appearance: none;
+            border: 1px solid transparent;
+            background: var(--accent);
+            color: white;
+            padding: 11px 17px;
+            border-radius: 999px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+            box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 24%, transparent);
+        }
+        button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        button.secondary {
+            background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+            color: var(--text);
+            border-color: var(--line-strong);
+            box-shadow: none;
+        }
+        button.secondary:hover { background: color-mix(in srgb, var(--panel-strong) 100%, transparent); }
+        button.danger { background: var(--danger); box-shadow: 0 10px 24px color-mix(in srgb, var(--danger) 20%, transparent); }
+        .meta { margin-top: 14px; font-size: 0.95rem; color: var(--muted); }
+        .banner {
+            margin: 18px 0 26px;
+            padding: 16px 18px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 96%, transparent), color-mix(in srgb, var(--panel) 100%, transparent));
+            color: var(--muted);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(14px);
+        }
+        .grid { display: grid; gap: 18px; }
+        .card {
+            background: linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 98%, transparent), color-mix(in srgb, var(--panel) 100%, transparent));
+            border: 1px solid var(--line);
+            border-radius: 26px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+        .card-header { display: flex; justify-content: space-between; gap: 18px; align-items: start; flex-wrap: wrap; }
+        .card h2 { margin: 0; font-size: 1.55rem; line-height: 1.02; }
+        .host { color: var(--muted); font-size: 0.96rem; margin-top: 5px; }
+        .totp {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border-radius: 999px;
+            background: var(--success-soft);
+            color: var(--success);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            border: 1px solid color-mix(in srgb, var(--success) 22%, transparent);
+        }
+        .error {
+            margin-top: 14px;
+            color: var(--danger);
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: var(--danger-soft);
+            border: 1px solid color-mix(in srgb, var(--danger) 22%, transparent);
+        }
+        .transaction-list { margin-top: 18px; display: grid; gap: 12px; }
+        .transaction {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 15px;
+            background: color-mix(in srgb, var(--panel-strong) 70%, transparent);
+        }
+        .transaction-title { font-weight: 700; font-size: 1rem; }
+        .transaction-details { margin-top: 7px; color: var(--muted); font-size: 0.95rem; line-height: 1.4; }
+        .transaction-actions { margin-top: 13px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .empty {
+            color: var(--muted);
+            padding: 16px 4px 4px;
+            font-style: italic;
+        }
+        .flash {
+            min-height: 1.5rem;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            padding-left: 4px;
+            color: var(--accent-hover);
+            font-weight: 700;
+        }
+        .flash.error { color: var(--danger); }
+        .flash.success { color: var(--success); }
+
+        @media (max-width: 720px) {
+            main { padding: 24px 14px 48px; }
+            header { grid-template-columns: 1fr; align-items: start; }
+            .actions { justify-content: start; }
+            .card { padding: 16px; border-radius: 20px; }
+            h1 { font-size: 2rem; }
+        }
   </style>
 </head>
 <body>
   <main>
     <header>
       <div>
+                <div class="eyebrow">Reconnect-safe Duo Helper</div>
         <h1>VSDuo Remote Helper</h1>
-        <p>Keep this page open while Remote SSH reloads the VS Code window. This helper keeps running locally until you stop it.</p>
+        <p>Keep this page open while Remote SSH reloads the VS Code window.</p>
         <div class="meta" id="refreshedAt"></div>
       </div>
       <div class="actions">
@@ -317,7 +468,10 @@ function renderPage(token: string): string {
       if (!response.ok) throw new Error(payload.error || "Request failed.");
       return payload;
     }
-    function setFlash(message) { flash.textContent = message; }
+        function setFlash(message, kind = "info") {
+            flash.textContent = message;
+            flash.className = kind === "error" ? "flash error" : kind === "success" ? "flash success" : "flash";
+        }
     function el(tagName, className, text) {
       const node = document.createElement(tagName);
       if (className) node.className = className;
@@ -327,7 +481,12 @@ function renderPage(token: string): string {
     function render(snapshot) {
       refreshedAt.textContent = "Last refreshed " + new Date(snapshot.refreshedAt).toLocaleString();
       devicesRoot.replaceChildren();
-      if (!snapshot.devices.length) { devicesRoot.append(el("div", "card", "No Duo devices are available in this helper session.")); return; }
+            if (!snapshot.devices.length) {
+                const empty = el("div", "card");
+                empty.append(el("div", "empty", "No Duo devices are available in this helper session."));
+                devicesRoot.append(empty);
+                return;
+            }
       for (const device of snapshot.devices) {
         const card = el("article", "card");
         const header = el("div", "card-header");
@@ -342,11 +501,11 @@ function renderPage(token: string): string {
         const denyButton = el("button", "secondary", "Deny all pending");
         denyButton.addEventListener("click", async () => {
           try {
-            setFlash("Denying pending Duo prompts for " + device.name + "...");
+                        setFlash("Denying pending Duo prompts for " + device.name + "...");
             const snapshot = await request("/api/deny", { method: "POST", body: JSON.stringify({ pkey: device.pkey }) });
             render(snapshot);
-            setFlash("Denied pending Duo prompts for " + device.name + ".");
-          } catch (error) { setFlash(error instanceof Error ? error.message : String(error)); }
+                        setFlash("Denied pending Duo prompts for " + device.name + ".", "success");
+                    } catch (error) { setFlash(error instanceof Error ? error.message : String(error), "error"); }
         });
         card.append(denyButton);
         if (device.error) card.append(el("div", "error", device.error));
@@ -366,11 +525,11 @@ function renderPage(token: string): string {
                 verificationCode = window.prompt("Enter the " + transaction.verificationDigits + "-digit Duo verification code", "") || "";
                 if (!verificationCode) return;
               }
-              setFlash("Approving " + transaction.title + " on " + device.name + "...");
+                            setFlash("Approving " + transaction.title + " on " + device.name + "...");
               const snapshot = await request("/api/approve", { method: "POST", body: JSON.stringify({ pkey: device.pkey, urgid: transaction.urgid, verificationCode }) });
               render(snapshot);
-              setFlash("Approved " + transaction.title + " on " + device.name + ".");
-            } catch (error) { setFlash(error instanceof Error ? error.message : String(error)); }
+                            setFlash("Approved " + transaction.title + " on " + device.name + ".", "success");
+                        } catch (error) { setFlash(error instanceof Error ? error.message : String(error), "error"); }
           });
           actions.append(approveButton);
           item.append(actions);
@@ -384,15 +543,15 @@ function renderPage(token: string): string {
       try {
         const snapshot = await request("/api/state");
         render(snapshot);
-        if (!flash.textContent) setFlash("Ready.");
-      } catch (error) { setFlash(error instanceof Error ? error.message : String(error)); }
+                if (!flash.textContent) setFlash("Ready.", "success");
+            } catch (error) { setFlash(error instanceof Error ? error.message : String(error), "error"); }
     }
     refreshButton.addEventListener("click", async () => { setFlash("Refreshing Duo transactions..."); await refresh(); });
     stopButton.addEventListener("click", async () => {
       try {
         await request("/api/stop", { method: "POST", body: "{}" });
-        setFlash("Helper stopped. This page can be closed.");
-      } catch (error) { setFlash(error instanceof Error ? error.message : String(error)); }
+                setFlash("Helper stopped. This page can be closed.", "success");
+            } catch (error) { setFlash(error instanceof Error ? error.message : String(error), "error"); }
     });
     void refresh();
     window.setInterval(() => { void refresh(); }, 5000);
