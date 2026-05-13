@@ -128,8 +128,7 @@ function formatEpoch(value: unknown): string {
 
 export class HostItem extends vscode.TreeItem {
     public constructor(public readonly host: SshHost) {
-        super(host.name, vscode.TreeItemCollapsibleState.None);
-        this.description = describeHost(host);
+        super(host.name, vscode.TreeItemCollapsibleState.Expanded);
         this.tooltip = [
             host.name,
             host.hostname ? `HostName: ${host.hostname}` : undefined,
@@ -145,6 +144,14 @@ export class HostItem extends vscode.TreeItem {
             title: "Connect Current Window to SSH Host",
             arguments: [this],
         };
+    }
+}
+
+class HostDetailItem extends vscode.TreeItem {
+    public constructor(label: string, value: string) {
+        super(`${label} ${value}`, vscode.TreeItemCollapsibleState.None);
+        this.contextValue = "vsduo.hostDetail";
+        this.iconPath = new vscode.ThemeIcon("blank");
     }
 }
 
@@ -175,7 +182,11 @@ export class HostTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         return element;
     }
 
-    public getChildren(): vscode.TreeItem[] {
+    public getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
+        if (element instanceof HostItem) {
+            return buildHostDetailItems(element.host);
+        }
+
         return this.items;
     }
 
@@ -188,16 +199,6 @@ function describeDevice(device: DuoDevice, isActive: boolean): string | undefine
     const parts = [isActive ? "active" : undefined, formatLastUsed(device.lastUsedAt)];
     const filtered = parts.filter((value): value is string => Boolean(value));
     return filtered.length ? filtered.join(" | ") : undefined;
-}
-
-function describeHost(host: SshHost): string | undefined {
-    const details = [
-        host.hostname && host.hostname !== host.name ? host.hostname : undefined,
-        host.user,
-        host.port ? `port ${host.port}` : undefined,
-        formatLastUsed(host.lastUsedAt),
-    ].filter((value): value is string => Boolean(value));
-    return details.length ? details.join(" | ") : undefined;
 }
 
 function formatLastUsed(value: string | undefined): string | undefined {
@@ -236,4 +237,13 @@ function formatTimestamp(value: string): string {
     }
 
     return new Date(timestamp).toLocaleString();
+}
+
+function buildHostDetailItems(host: SshHost): vscode.TreeItem[] {
+    return [
+        new HostDetailItem("Host Name:", host.hostname ?? host.name),
+        new HostDetailItem("User:", host.user ?? "not set"),
+        new HostDetailItem("Port:", host.port ?? "default"),
+        new HostDetailItem("Last Used:", host.lastUsedAt ? formatTimestamp(host.lastUsedAt) : "never"),
+    ];
 }
