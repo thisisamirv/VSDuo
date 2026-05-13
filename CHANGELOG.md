@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better host rows that show HostName, User, and Port details directly in the Hosts view.
 - Last-used timestamps for Duo devices and SSH hosts.
 - Clear empty-state rows in the Devices, Pending Transactions, and Hosts views.
+- Icon-only action buttons with hover labels for commands across the VSDuo views.
 
 ### Changed
 

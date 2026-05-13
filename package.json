@@ -2,7 +2,7 @@
     "name": "vsduo-auth",
     "displayName": "VSDuo Auth",
     "description": "Manage Duo devices and approve Duo push requests from VS Code with VSDuo.",
-    "version": "0.2.3",
+    "version": "0.2.5",
     "publisher": "thisisamirv",
     "icon": "media/icon.png",
     "license": "SEE LICENSE IN LICENSE",
@@ -87,15 +87,27 @@
         "commands": [
             {
                 "command": "vsduo.addDevice",
-                "title": "VSDuo: Add Device"
+                "title": "VSDuo: Add Device",
+                "icon": {
+                    "light": "media/actions/light/add-device.svg",
+                    "dark": "media/actions/dark/add-device.svg"
+                }
             },
             {
                 "command": "vsduo.refreshTransactions",
-                "title": "VSDuo: Refresh Transactions"
+                "title": "VSDuo: Refresh Transactions",
+                "icon": {
+                    "light": "media/actions/light/refresh.svg",
+                    "dark": "media/actions/dark/refresh.svg"
+                }
             },
             {
                 "command": "vsduo.refreshHosts",
-                "title": "VSDuo: Refresh Hosts"
+                "title": "VSDuo: Refresh Hosts",
+                "icon": {
+                    "light": "media/actions/light/refresh.svg",
+                    "dark": "media/actions/dark/refresh.svg"
+                }
             },
             {
                 "command": "vsduo.showRemoteSshDiagnostics",
@@ -103,7 +115,11 @@
             },
             {
                 "command": "vsduo.copyRemoteSshDiagnostics",
-                "title": "VSDuo: Copy Remote SSH Diagnostics"
+                "title": "VSDuo: Copy Remote SSH Diagnostics",
+                "icon": {
+                    "light": "media/actions/light/clipboard.svg",
+                    "dark": "media/actions/dark/clipboard.svg"
+                }
             },
             {
                 "command": "vsduo.startRemoteHelper",
@@ -111,7 +127,11 @@
             },
             {
                 "command": "vsduo.connectCurrentWindowToSshHost",
-                "title": "VSDuo: Connect Current Window to SSH Host"
+                "title": "VSDuo: Connect Current Window to SSH Host",
+                "icon": {
+                    "light": "media/actions/light/connect.svg",
+                    "dark": "media/actions/dark/connect.svg"
+                }
             },
             {
                 "command": "vsduo.openRemoteHelper",
@@ -123,27 +143,51 @@
             },
             {
                 "command": "vsduo.setActiveDevice",
-                "title": "VSDuo: Set Active Device"
+                "title": "VSDuo: Set Active Device",
+                "icon": {
+                    "light": "media/actions/light/check.svg",
+                    "dark": "media/actions/dark/check.svg"
+                }
             },
             {
                 "command": "vsduo.renameDevice",
-                "title": "VSDuo: Rename Device"
+                "title": "VSDuo: Rename Device",
+                "icon": {
+                    "light": "media/actions/light/rename.svg",
+                    "dark": "media/actions/dark/rename.svg"
+                }
             },
             {
                 "command": "vsduo.removeDevice",
-                "title": "VSDuo: Remove Device"
+                "title": "VSDuo: Remove Device",
+                "icon": {
+                    "light": "media/actions/light/remove.svg",
+                    "dark": "media/actions/dark/remove.svg"
+                }
             },
             {
                 "command": "vsduo.approveTransaction",
-                "title": "VSDuo: Approve Transaction"
+                "title": "VSDuo: Approve Transaction",
+                "icon": {
+                    "light": "media/actions/light/approve.svg",
+                    "dark": "media/actions/dark/approve.svg"
+                }
             },
             {
                 "command": "vsduo.denyTransaction",
-                "title": "VSDuo: Deny Transaction"
+                "title": "VSDuo: Deny Transaction",
+                "icon": {
+                    "light": "media/actions/light/deny.svg",
+                    "dark": "media/actions/dark/deny.svg"
+                }
             },
             {
                 "command": "vsduo.copyTotp",
-                "title": "VSDuo: Copy TOTP"
+                "title": "VSDuo: Copy TOTP",
+                "icon": {
+                    "light": "media/actions/light/clipboard.svg",
+                    "dark": "media/actions/dark/clipboard.svg"
+                }
             },
             {
                 "command": "vsduo.importData",
