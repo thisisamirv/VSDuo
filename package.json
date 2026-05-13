@@ -98,6 +98,14 @@
                 "title": "VSDuo: Refresh Hosts"
             },
             {
+                "command": "vsduo.showRemoteSshDiagnostics",
+                "title": "VSDuo: Show Remote SSH Diagnostics"
+            },
+            {
+                "command": "vsduo.copyRemoteSshDiagnostics",
+                "title": "VSDuo: Copy Remote SSH Diagnostics"
+            },
+            {
                 "command": "vsduo.startRemoteHelper",
                 "title": "VSDuo: Start Remote SSH Helper"
             },
@@ -198,6 +206,11 @@
                     "command": "vsduo.refreshHosts",
                     "when": "view == vsduo.hosts",
                     "group": "navigation"
+                },
+                {
+                    "command": "vsduo.copyRemoteSshDiagnostics",
+                    "when": "view == vsduo.hosts",
+                    "group": "navigation@1"
                 }
             ],
             "view/item/context": [
@@ -263,6 +276,12 @@
                     "command": "vsduo.refreshHosts"
                 },
                 {
+                    "command": "vsduo.showRemoteSshDiagnostics"
+                },
+                {
+                    "command": "vsduo.copyRemoteSshDiagnostics"
+                },
+                {
                     "command": "vsduo.startRemoteHelper"
                 },
                 {
@@ -308,8 +327,8 @@
         "publish:marketplace": "npm run build && npx -y @vscode/vsce@3.9.1 publish"
     },
     "dependencies": {
-        "otplib": "^13.4.0",
-        "ssh-config": "^5.1.0"
+        "otplib": "^13.4",
+        "ssh-config": "^5.1"
     },
     "devDependencies": {
         "@types/node": "^25.7",

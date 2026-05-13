@@ -1,21 +1,17 @@
 import { readFile } from "node:fs/promises";
 import os from "node:os";
-import path from "node:path";
 import * as vscode from "vscode";
-import { collectRemoteSshHosts } from "./remoteSshHosts";
+import { collectRemoteSshHosts, mergeSshHosts } from "./remoteSshHosts";
 import { parseSshConfigHosts } from "./sshConfigParser";
+import { resolveSshConfigPath } from "./sshConfigPath";
 import { SshHost } from "./types";
 
 export async function loadSshHosts(): Promise<SshHost[]> {
-    const remoteHosts = await loadRemoteSshHosts();
-    if (remoteHosts.length) {
-        return remoteHosts;
-    }
-
-    return loadHostsFromConfig();
+    const diagnostics = await getSshHostDiagnostics();
+    return diagnostics.mergedHosts;
 }
 
-async function loadRemoteSshHosts(): Promise<SshHost[]> {
+export async function loadRemoteSshHosts(): Promise<SshHost[]> {
     try {
         const result = await vscode.commands.executeCommand<unknown>("remote-internal.getConfiguredHostnames");
         return collectRemoteSshHosts(result);
@@ -24,8 +20,8 @@ async function loadRemoteSshHosts(): Promise<SshHost[]> {
     }
 }
 
-async function loadHostsFromConfig(): Promise<SshHost[]> {
-    const configPath = resolveSshConfigPath();
+export async function loadHostsFromConfig(): Promise<SshHost[]> {
+    const configPath = getResolvedSshConfigPath();
     try {
         const raw = await readFile(configPath, "utf8");
         return parseSshConfigHosts(raw);
@@ -34,20 +30,17 @@ async function loadHostsFromConfig(): Promise<SshHost[]> {
     }
 }
 
-function resolveSshConfigPath(): string {
-    const configured = vscode.workspace.getConfiguration("remote.SSH").get<string>("configFile", "").trim();
-    const rawPath = configured || path.join("~", ".ssh", "config");
-    return expandHomePath(rawPath);
+export async function getSshHostDiagnostics(): Promise<{ resolvedConfigPath: string; remoteHosts: SshHost[]; configHosts: SshHost[]; mergedHosts: SshHost[]; }> {
+    const [remoteHosts, configHosts] = await Promise.all([loadRemoteSshHosts(), loadHostsFromConfig()]);
+    return {
+        resolvedConfigPath: getResolvedSshConfigPath(),
+        remoteHosts,
+        configHosts,
+        mergedHosts: mergeSshHosts(remoteHosts, configHosts),
+    };
 }
 
-function expandHomePath(inputPath: string): string {
-    if (inputPath === "~") {
-        return os.homedir();
-    }
-
-    if (inputPath.startsWith("~/") || inputPath.startsWith("~\\")) {
-        return path.join(os.homedir(), inputPath.slice(2));
-    }
-
-    return inputPath;
+export function getResolvedSshConfigPath(): string {
+    const configured = vscode.workspace.getConfiguration("remote.SSH").get<string>("configFile", "").trim();
+    return resolveSshConfigPath(configured, os.homedir());
 }

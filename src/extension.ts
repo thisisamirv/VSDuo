@@ -3,9 +3,10 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { DeviceStore } from "./deviceStore";
 import { DuoClient } from "./duoClient";
+import { formatRemoteSshDiagnostics, HandoffDiagnostics, HelperDiagnostics } from "./remoteSshDiagnostics";
 import { runRemoteSshHandoff } from "./remoteSshHandoff";
 import { DeviceItem, DeviceTreeProvider, HostItem, HostTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
-import { loadSshHosts } from "./sshHosts";
+import { getSshHostDiagnostics, loadSshHosts } from "./sshHosts";
 import { DuoDevice, DuoTransaction, StoredDeviceData, SshHost } from "./types";
 
 interface RemoteHelperState {
@@ -30,6 +31,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     let currentTransactions: DuoTransaction[] = [];
     let refreshHandle: NodeJS.Timeout | undefined;
+    let lastHelperDiagnostics: HelperDiagnostics = { mode: "backgroundAndOpen", attempted: false };
+    let lastHandoffDiagnostics: HandoffDiagnostics | undefined;
 
     const syncViews = async (showErrors = false): Promise<void> => {
         try {
@@ -162,6 +165,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand("vsduo.refreshHosts", async () => {
             await refreshHosts(true);
         }),
+        vscode.commands.registerCommand("vsduo.showRemoteSshDiagnostics", async () => {
+            const content = await buildRemoteSshDiagnosticsReport(context, lastHelperDiagnostics, lastHandoffDiagnostics);
+
+            const document = await vscode.workspace.openTextDocument({
+                language: "markdown",
+                content,
+            });
+            await vscode.window.showTextDocument(document, { preview: false });
+        }),
+        vscode.commands.registerCommand("vsduo.copyRemoteSshDiagnostics", async () => {
+            const content = await buildRemoteSshDiagnosticsReport(context, lastHelperDiagnostics, lastHandoffDiagnostics);
+            await vscode.env.clipboard.writeText(content);
+            void vscode.window.showInformationMessage("Copied VSDuo Remote SSH diagnostics to the clipboard.");
+        }),
         vscode.commands.registerCommand("vsduo.startRemoteHelper", async () => {
             const state = await ensureRemoteHelperRunning(context, store);
             await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(state)));
@@ -173,9 +190,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 return;
             }
 
-            await maybeStartRemoteHelperForConnect(context, store);
+            lastHelperDiagnostics = await maybeStartRemoteHelperForConnect(context, store);
 
-            await connectCurrentWindowToSshHost(host);
+            try {
+                lastHandoffDiagnostics = await connectCurrentWindowToSshHost(host);
+            } catch (error) {
+                lastHandoffDiagnostics = {
+                    hostName: host.name,
+                    error: errorToString(error),
+                };
+                const message = lastHandoffDiagnostics.error;
+                if (message) {
+                    void vscode.window.showErrorMessage(message);
+                }
+            }
         }),
         vscode.commands.registerCommand("vsduo.openRemoteHelper", async () => {
             const state = context.globalState.get<RemoteHelperState>(REMOTE_HELPER_STATE_KEY);
@@ -461,25 +489,65 @@ function errorToString(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-async function maybeStartRemoteHelperForConnect(context: vscode.ExtensionContext, store: DeviceStore): Promise<void> {
+async function buildRemoteSshDiagnosticsReport(
+    context: vscode.ExtensionContext,
+    lastHelperDiagnostics: HelperDiagnostics,
+    lastHandoffDiagnostics: HandoffDiagnostics | undefined,
+): Promise<string> {
+    const sshDiagnostics = await getSshHostDiagnostics();
+    const helperState = context.globalState.get<RemoteHelperState>(REMOTE_HELPER_STATE_KEY);
+    const helperResponded = helperState ? await pingRemoteHelper(helperState.port) : false;
+
+    return formatRemoteSshDiagnostics({
+        ...sshDiagnostics,
+        helper: {
+            ...lastHelperDiagnostics,
+            port: helperState?.port ?? lastHelperDiagnostics.port,
+            responded: helperState ? helperResponded : lastHelperDiagnostics.responded,
+        },
+        handoff: lastHandoffDiagnostics,
+    });
+}
+
+async function maybeStartRemoteHelperForConnect(context: vscode.ExtensionContext, store: DeviceStore): Promise<HelperDiagnostics> {
     const mode = vscode.workspace.getConfiguration("vsduo").get<RemoteHelperAutoStartMode>("remoteHelperAutoStart", "backgroundAndOpen");
     if (mode === "off") {
-        return;
+        return { mode, attempted: false };
     }
 
     try {
         const data = await store.getData();
         if (!data.devices.length) {
-            return;
+            return { mode, attempted: false };
         }
 
         const wasRunning = await isRemoteHelperRunning(context);
         const state = await ensureRemoteHelperRunning(context, store);
+        const openedBrowser = !wasRunning || mode === "backgroundAndOpen";
         if (!wasRunning || mode === "backgroundAndOpen") {
             await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(state)));
         }
+
+        return {
+            mode,
+            attempted: true,
+            wasRunningBefore: wasRunning,
+            started: !wasRunning,
+            responded: true,
+            openedBrowser,
+            port: state.port,
+        };
     } catch (error) {
-        void vscode.window.showWarningMessage(`VSDuo could not start the Remote SSH helper before connecting: ${errorToString(error)}`);
+        const message = `VSDuo could not start the Remote SSH helper before connecting: ${errorToString(error)}`;
+        void vscode.window.showWarningMessage(message);
+        return {
+            mode,
+            attempted: true,
+            started: false,
+            responded: false,
+            openedBrowser: false,
+            error: message,
+        };
     }
 }
 
@@ -577,6 +645,11 @@ async function pingRemoteHelper(port: number): Promise<boolean> {
     }
 }
 
-async function connectCurrentWindowToSshHost(host: SshHost): Promise<void> {
-    await runRemoteSshHandoff(host, (command, ...args) => vscode.commands.executeCommand(command, ...args));
+async function connectCurrentWindowToSshHost(host: SshHost): Promise<HandoffDiagnostics> {
+    const result = await runRemoteSshHandoff(host, (command, ...args) => vscode.commands.executeCommand(command, ...args));
+    return {
+        hostName: host.name,
+        succeededCommand: result.attempt.command,
+        succeededArgs: result.attempt.args,
+    };
 }

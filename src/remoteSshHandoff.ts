@@ -5,6 +5,11 @@ export interface RemoteSshCommandAttempt {
     args: unknown[];
 }
 
+export interface RemoteSshHandoffResult {
+    attempt: RemoteSshCommandAttempt;
+    attemptsTried: number;
+}
+
 export type ExecuteCommand = (command: string, ...args: unknown[]) => Thenable<unknown> | Promise<unknown>;
 
 export function buildRemoteSshHandoffAttempts(host: SshHost): RemoteSshCommandAttempt[] {
@@ -28,14 +33,17 @@ export function buildRemoteSshHandoffAttempts(host: SshHost): RemoteSshCommandAt
     ];
 }
 
-export async function runRemoteSshHandoff(host: SshHost, executeCommand: ExecuteCommand): Promise<void> {
+export async function runRemoteSshHandoff(host: SshHost, executeCommand: ExecuteCommand): Promise<RemoteSshHandoffResult> {
     const attempts = buildRemoteSshHandoffAttempts(host);
     let lastError: unknown;
 
-    for (const attempt of attempts) {
+    for (const [index, attempt] of attempts.entries()) {
         try {
             await executeCommand(attempt.command, ...attempt.args);
-            return;
+            return {
+                attempt,
+                attemptsTried: index + 1,
+            };
         } catch (error) {
             lastError = error;
         }

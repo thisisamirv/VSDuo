@@ -16,10 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration-style tests for the helper HTTP API covering ping, state, approve, deny, authorization, and stop flows.
 - CI and Marketplace status badges in the README.
 - Diagnostics-oriented tests for Remote SSH configured-host normalization, deduplication, and handoff command fallback ordering.
+- A Remote SSH diagnostics command that reports the resolved SSH config path, parsed hosts, helper status, and the last successful Remote SSH handoff command signature.
+- A one-click Copy Remote SSH Diagnostics action in the Hosts view and command palette.
 
 ### Changed
 
 - Refactored pure parsing and normalization logic into standalone modules so tests can run without the VS Code runtime.
 - Refactored the helper implementation into a reusable HTTP server module that can be exercised directly in automated tests.
 - Refactored Remote SSH configured-host discovery and handoff fallback planning into standalone modules so they can be validated outside the VS Code runtime.
+- Made Remote SSH host discovery less brittle by merging Remote SSH configured hosts with parsed entries from `remote.SSH.configFile`, preserving SSH config metadata when available.
 - Updated dev dependencies `@types/node` to v25.7, `tsx` to v4.21, and `@types/vscode` to v1.118.
