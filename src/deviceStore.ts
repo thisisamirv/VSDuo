@@ -24,7 +24,10 @@ export class DeviceStore {
     public async addDevice(device: DuoDevice): Promise<StoredDeviceData> {
         const data = await this.getData();
         const devices = data.devices.filter((entry) => entry.pkey !== device.pkey);
-        devices.push(device);
+        devices.push({
+            ...device,
+            lastUsedAt: device.lastUsedAt ?? new Date().toISOString(),
+        });
         const next: StoredDeviceData = {
             activeDevice: device.pkey,
             devices,
@@ -42,6 +45,22 @@ export class DeviceStore {
         const next: StoredDeviceData = {
             ...data,
             activeDevice: pkey,
+            devices: data.devices.map((device) => device.pkey === pkey ? { ...device, lastUsedAt: new Date().toISOString() } : device),
+        };
+        await this.saveData(next);
+        return next;
+    }
+
+    public async markDeviceUsed(pkey: string, when = new Date().toISOString()): Promise<StoredDeviceData> {
+        const data = await this.getData();
+        const devices = data.devices.map((device) => device.pkey === pkey ? { ...device, lastUsedAt: when } : device);
+        if (!devices.some((device) => device.pkey === pkey)) {
+            throw new Error(`Unknown device: ${pkey}`);
+        }
+
+        const next: StoredDeviceData = {
+            ...data,
+            devices,
         };
         await this.saveData(next);
         return next;

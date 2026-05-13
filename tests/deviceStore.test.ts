@@ -53,3 +53,14 @@ test("normalizeStoredData wraps a single Duo device payload", () => {
     assert.equal(normalized.activeDevice, device.pkey);
     assert.deepEqual(normalized.devices, [device]);
 });
+
+test("normalizeStoredData preserves persisted device timestamps", () => {
+    const device = createDevice({ lastUsedAt: "2026-05-13T12:00:00.000Z" });
+
+    const normalized = normalizeStoredData({
+        activeDevice: device.pkey,
+        devices: [device],
+    });
+
+    assert.equal(normalized.devices[0]?.lastUsedAt, "2026-05-13T12:00:00.000Z");
+});

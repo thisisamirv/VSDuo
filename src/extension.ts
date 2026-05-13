@@ -17,6 +17,7 @@ interface RemoteHelperState {
 type RemoteHelperAutoStartMode = "off" | "background" | "backgroundAndOpen";
 
 const REMOTE_HELPER_STATE_KEY = "vsduo.remoteHelper";
+const LAST_USED_HOSTS_KEY = "vsduo.lastUsedHosts";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     const store = new DeviceStore(context);
@@ -41,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             const activeDevice = data.devices.find((device) => device.pkey === data.activeDevice);
             if (!activeDevice) {
                 currentTransactions = [];
-                transactionsProvider.setTransactions([]);
+                transactionsProvider.setTransactions([], "Add and activate a Duo device to see pending requests.");
                 statusBar.text = "$(icon) VSDuo: no device";
                 statusBar.tooltip = "Run VSDuo: Add Device to configure Duo.";
                 statusBar.show();
@@ -55,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             statusBar.show();
         } catch (error) {
             currentTransactions = [];
-            transactionsProvider.setTransactions([]);
+            transactionsProvider.setTransactions([], "Unable to load Duo transactions.");
             statusBar.text = "$(error) VSDuo error";
             statusBar.tooltip = errorToString(error);
             statusBar.show();
@@ -88,7 +89,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     const refreshHosts = async (showErrors = false): Promise<void> => {
         try {
-            const hosts = await loadSshHosts();
+            const hosts = applyLastUsedTimestamps(await loadSshHosts(), getLastUsedHosts(context));
             hostsProvider.setHosts(hosts);
         } catch (error) {
             hostsProvider.setHosts([]);
@@ -194,6 +195,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
             try {
                 lastHandoffDiagnostics = await connectCurrentWindowToSshHost(host);
+                await markHostUsed(context, host.name);
+                await refreshHosts(false);
             } catch (error) {
                 lastHandoffDiagnostics = {
                     hostName: host.name,
@@ -313,6 +316,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             }
 
             await client.approveTransaction(activeDevice, currentTransactions, transaction.urgid, verificationCode);
+            await store.markDeviceUsed(activeDevice.pkey);
             await syncViews(true);
             void vscode.window.showInformationMessage("Duo transaction approved.");
         }),
@@ -329,6 +333,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             }
 
             await client.approveTransaction(activeDevice, currentTransactions, "__deny_all__");
+            await store.markDeviceUsed(activeDevice.pkey);
             await syncViews(true);
             void vscode.window.showInformationMessage(`Denied ${transaction.urgid} and any other pending transactions on the active device.`);
         }),
@@ -346,6 +351,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             }
 
             await vscode.env.clipboard.writeText(code);
+            await store.markDeviceUsed(device.pkey);
+            await syncViews(false);
             void vscode.window.showInformationMessage(`Copied TOTP for ${device.name}.`);
         }),
         vscode.commands.registerCommand("vsduo.importData", async () => {
@@ -467,7 +474,7 @@ async function pickDevice(store: DeviceStore, placeHolder: string): Promise<DuoD
 }
 
 async function pickHost(hostsProvider: HostTreeProvider): Promise<SshHost | undefined> {
-    const hosts = hostsProvider.getChildren().map((item) => item.host);
+    const hosts = hostsProvider.getHosts();
     if (!hosts.length) {
         void vscode.window.showInformationMessage("No SSH hosts found in your SSH configuration.");
         return undefined;
@@ -652,4 +659,23 @@ async function connectCurrentWindowToSshHost(host: SshHost): Promise<HandoffDiag
         succeededCommand: result.attempt.command,
         succeededArgs: result.attempt.args,
     };
+}
+
+function getLastUsedHosts(context: vscode.ExtensionContext): Record<string, string> {
+    return context.globalState.get<Record<string, string>>(LAST_USED_HOSTS_KEY, {});
+}
+
+function applyLastUsedTimestamps(hosts: SshHost[], lastUsedHosts: Record<string, string>): SshHost[] {
+    return hosts.map((host) => ({
+        ...host,
+        lastUsedAt: lastUsedHosts[host.name] ?? host.lastUsedAt,
+    }));
+}
+
+async function markHostUsed(context: vscode.ExtensionContext, hostName: string, when = new Date().toISOString()): Promise<void> {
+    const lastUsedHosts = getLastUsedHosts(context);
+    await context.globalState.update(LAST_USED_HOSTS_KEY, {
+        ...lastUsedHosts,
+        [hostName]: when,
+    });
 }

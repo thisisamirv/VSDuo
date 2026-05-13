@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Diagnostics-oriented tests for Remote SSH configured-host normalization, deduplication, and handoff command fallback ordering.
 - A Remote SSH diagnostics command that reports the resolved SSH config path, parsed hosts, helper status, and the last successful Remote SSH handoff command signature.
 - A one-click Copy Remote SSH Diagnostics action in the Hosts view and command palette.
+- Better host rows that show HostName, User, and Port details directly in the Hosts view.
+- Last-used timestamps for Duo devices and SSH hosts.
+- Clear empty-state rows in the Devices, Pending Transactions, and Hosts views.
 
 ### Changed
 

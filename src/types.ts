@@ -4,6 +4,7 @@ export interface DuoDevice {
     publicRaw: string;
     privateRaw: string;
     name: string;
+    lastUsedAt?: string;
     clickLevel?: string;
     hotp_secret?: string;
     use_totp?: boolean;
@@ -37,5 +38,6 @@ export interface SshHost {
     user?: string;
     port?: string;
     identityFile?: string;
+    lastUsedAt?: string;
     source: "remote-ssh" | "ssh-config";
 }
