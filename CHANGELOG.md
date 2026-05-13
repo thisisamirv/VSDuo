@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Last-used timestamps for Duo devices and SSH hosts.
 - Clear empty-state rows in the Devices, Pending Transactions, and Hosts views.
 - Icon-only action buttons with hover labels for commands across the VSDuo views.
+- A new action for adding hosts directly from UI.
 
 ### Changed
 
