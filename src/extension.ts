@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import { DeviceStore } from "./deviceStore";
 import { DuoClient } from "./duoClient";
+import { runRemoteSshHandoff } from "./remoteSshHandoff";
 import { DeviceItem, DeviceTreeProvider, HostItem, HostTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
 import { loadSshHosts } from "./sshHosts";
 import { DuoDevice, DuoTransaction, StoredDeviceData, SshHost } from "./types";
@@ -577,22 +578,5 @@ async function pingRemoteHelper(port: number): Promise<boolean> {
 }
 
 async function connectCurrentWindowToSshHost(host: SshHost): Promise<void> {
-    const attempts: Array<() => Thenable<unknown>> = [
-        () => vscode.commands.executeCommand("remote-internal.openRemoteSshTarget", host.name, true),
-        () => vscode.commands.executeCommand("remote-internal.openRemoteSshTarget", { host: host.name, forceNewWindow: false }),
-        () => vscode.commands.executeCommand("remote-internal.openRemoteSshTarget", { hostName: host.name, forceNewWindow: false }),
-        () => vscode.commands.executeCommand("opensshremotes.openEmptyWindowInCurrentWindow", host.name),
-    ];
-
-    let lastError: unknown;
-    for (const attempt of attempts) {
-        try {
-            await attempt();
-            return;
-        } catch (error) {
-            lastError = error;
-        }
-    }
-
-    throw new Error(`Unable to hand off SSH host ${host.name} to Remote SSH${lastError ? `: ${errorToString(lastError)}` : "."}`);
+    await runRemoteSshHandoff(host, (command, ...args) => vscode.commands.executeCommand(command, ...args));
 }

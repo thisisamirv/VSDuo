@@ -300,6 +300,7 @@
     },
     "scripts": {
         "build": "tsc -p ./tsconfig.json",
+        "test": "node --import tsx --test tests/**/*.test.ts",
         "watch": "tsc -w -p ./tsconfig.json",
         "vscode:prepublish": "npm run build",
         "package": "npm run build && node scripts/package-vsix.cjs",
@@ -311,9 +312,10 @@
         "ssh-config": "^5.1.0"
     },
     "devDependencies": {
-        "@types/node": "^25.6.2",
-        "@types/vscode": "^1.99.1",
-        "typescript": "^6.0.3",
-        "yazl": "^3.3.1"
+        "@types/node": "^25.7",
+        "@types/vscode": "^1.118",
+        "tsx": "^4.21",
+        "typescript": "^6.0",
+        "yazl": "^3.3"
     }
 }

@@ -3,9 +3,12 @@
 ```powershell
 npm install
 npm run build
+npm test
 ```
 
 Press `F5` in VS Code from the repository root to launch an Extension Development Host.
+
+GitHub Actions runs the same validation on every push and pull request by building the extension, running the automated tests, and packaging a VSIX artifact.
 
 ## Packaging
 

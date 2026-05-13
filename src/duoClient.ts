@@ -149,7 +149,7 @@ export class DuoClient {
     }
 }
 
-function parseActivationCode(rawCode: string): { identifier: string; host: string } {
+export function parseActivationCode(rawCode: string): { identifier: string; host: string } {
     const parts = rawCode.trim().split("-");
     if (parts.length !== 2) {
         throw new Error("Activation code must look like XXXXXXXXXXXXXXXXXXXX-encodedHost.");
@@ -198,7 +198,7 @@ function toPem(key: ArrayBuffer): string {
     return `-----BEGIN PUBLIC KEY-----\n${lines.join("\n")}\n-----END PUBLIC KEY-----`;
 }
 
-function base32Encode(input: string): string {
+export function base32Encode(input: string): string {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     let binary = "";
     for (const character of input) {
