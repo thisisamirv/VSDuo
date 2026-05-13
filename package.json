@@ -110,6 +110,14 @@
                 }
             },
             {
+                "command": "vsduo.addSshHost",
+                "title": "VSDuo: Add SSH Host",
+                "icon": {
+                    "light": "media/actions/light/add.svg",
+                    "dark": "media/actions/dark/add.svg"
+                }
+            },
+            {
                 "command": "vsduo.showRemoteSshDiagnostics",
                 "title": "VSDuo: Show Remote SSH Diagnostics"
             },
@@ -252,9 +260,14 @@
                     "group": "navigation"
                 },
                 {
-                    "command": "vsduo.copyRemoteSshDiagnostics",
+                    "command": "vsduo.addSshHost",
                     "when": "view == vsduo.hosts",
                     "group": "navigation@1"
+                },
+                {
+                    "command": "vsduo.copyRemoteSshDiagnostics",
+                    "when": "view == vsduo.hosts",
+                    "group": "navigation@2"
                 }
             ],
             "view/item/context": [
@@ -318,6 +331,9 @@
                 },
                 {
                     "command": "vsduo.refreshHosts"
+                },
+                {
+                    "command": "vsduo.addSshHost"
                 },
                 {
                     "command": "vsduo.showRemoteSshDiagnostics"

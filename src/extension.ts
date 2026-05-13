@@ -1,12 +1,14 @@
 import { fork } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 import * as vscode from "vscode";
 import { DeviceStore } from "./deviceStore";
 import { DuoClient } from "./duoClient";
 import { formatRemoteSshDiagnostics, HandoffDiagnostics, HelperDiagnostics } from "./remoteSshDiagnostics";
 import { runRemoteSshHandoff } from "./remoteSshHandoff";
 import { DeviceItem, DeviceTreeProvider, HostItem, HostTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
-import { getSshHostDiagnostics, loadSshHosts } from "./sshHosts";
+import { getResolvedSshConfigPath, getSshHostDiagnostics, loadSshHosts } from "./sshHosts";
 import { DuoDevice, DuoTransaction, StoredDeviceData, SshHost } from "./types";
 
 interface RemoteHelperState {
@@ -165,6 +167,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }),
         vscode.commands.registerCommand("vsduo.refreshHosts", async () => {
             await refreshHosts(true);
+        }),
+        vscode.commands.registerCommand("vsduo.addSshHost", async () => {
+            await openSshConfigForEditing();
         }),
         vscode.commands.registerCommand("vsduo.showRemoteSshDiagnostics", async () => {
             const content = await buildRemoteSshDiagnosticsReport(context, lastHelperDiagnostics, lastHandoffDiagnostics);
@@ -514,6 +519,22 @@ async function buildRemoteSshDiagnosticsReport(
         },
         handoff: lastHandoffDiagnostics,
     });
+}
+
+async function openSshConfigForEditing(): Promise<void> {
+    const configPath = getResolvedSshConfigPath();
+    const configUri = vscode.Uri.file(configPath);
+
+    await mkdir(path.dirname(configPath), { recursive: true });
+
+    try {
+        await vscode.workspace.fs.stat(configUri);
+    } catch {
+        await vscode.workspace.fs.writeFile(configUri, Buffer.from("", "utf8"));
+    }
+
+    const document = await vscode.workspace.openTextDocument(configUri);
+    await vscode.window.showTextDocument(document, { preview: false });
 }
 
 async function maybeStartRemoteHelperForConnect(context: vscode.ExtensionContext, store: DeviceStore): Promise<HelperDiagnostics> {
