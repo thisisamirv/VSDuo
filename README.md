@@ -1,7 +1,7 @@
 # VSDuo
 
 [![CI](https://github.com/thisisamirv/VSDuo/actions/workflows/ci.yml/badge.svg)](https://github.com/thisisamirv/VSDuo/actions/workflows/ci.yml)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/thisisamirv.vsduo-auth)](https://marketplace.visualstudio.com/items?itemName=thisisamirv.vsduo-auth)
+[![VS Code Marketplace](https://vsmarketplacebadges.dev/version-short/thisisamirv.vsduo-auth.svg)](https://marketplace.visualstudio.com/items?itemName=thisisamirv.vsduo-auth)
 
 VSDuo is a VS Code extension for managing Duo devices from the editor. It polls pending Duo transactions and lets you approve, deny, or copy TOTP codes without any browser-extension code in this repo.
 

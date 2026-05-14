@@ -47,7 +47,7 @@ VSDuo now also activates when the main Remote SSH connect commands run, so the h
 After packaging, install the generated VSIX into VS Code:
 
 ```powershell
-code.cmd --install-extension .\vsduo-auth-0.2.3.vsix --force
+code.cmd --install-extension .\vsduo-auth-<version>.vsix --force
 ```
 
 Then run `Developer: Reload Window` in VS Code so the updated extension is loaded.
