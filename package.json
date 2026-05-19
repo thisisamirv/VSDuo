@@ -35,7 +35,7 @@
         "package.json"
     ],
     "engines": {
-        "vscode": "^1.118.0"
+        "vscode": "^1.120.0"
     },
     "extensionKind": [
         "ui"
@@ -387,14 +387,14 @@
         "publish:marketplace": "npm run build && npx -y @vscode/vsce@3.9.1 publish"
     },
     "dependencies": {
-        "otplib": "^13.4",
-        "ssh-config": "^5.1"
+        "otplib": "^13.4.0",
+        "ssh-config": "^5.1.0"
     },
     "devDependencies": {
-        "@types/node": "^25.7",
-        "@types/vscode": "^1.118",
-        "tsx": "^4.21",
-        "typescript": "^6.0",
-        "yazl": "^3.3"
+        "@types/node": "^25.9.0",
+        "@types/vscode": "^1.120.0",
+        "tsx": "^4.22.2",
+        "typescript": "^6.0.3",
+        "yazl": "^3.3.1"
     }
 }

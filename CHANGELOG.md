@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A per-host Auto-Approve (1 min) checkbox in the Hosts view.
 - Auto-Approve support that runs detached in the background for one minute during host connect, so approvals can continue through Remote SSH window reloads.
 
+### Changed
+
+- Updated `vscode` engine to version 1.120.0.
+
+### Fixed
+
+- Fixed versioning vulnerabilities in `package.json`.
+
 ## 0.3.0
 
 ### Added
