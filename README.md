@@ -5,18 +5,6 @@
 
 VSDuo is a VS Code extension for managing Duo devices from the editor. It polls pending Duo transactions and lets you approve, deny, or copy TOTP codes without any browser-extension code in this repo.
 
-## Installation
-
-The extension is now live on [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=thisisamirv.vsduo-auth).
-
-For development, testing, and packaging instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
-
-## Attribution
-
-This project is inspired by [Auto-2FA](https://github.com/FreshSupaSulley/Auto-2FA/).
-
-Parts of the implementation and supporting ideas were adapted from that project and used here as part of this VS Code extension.
-
 ## Features
 
 - Add a Duo device from an activation code.
@@ -56,6 +44,10 @@ Use the `HOSTS` view as the entry point for SSH connections:
 3. Click the target machine in `HOSTS` to connect the current window.
 4. Let VSDuo start the helper page before Remote - SSH begins the window transition.
 
+Each host also includes an `Auto-Approve (1 min)` checkbox. When enabled for a host, pressing `Connect` starts a detached one-minute auto-approve process instead of opening the helper page, so approvals can continue while the VS Code window reloads during Remote SSH handoff.
+
+> Warning: Auto-Approve can approve real Duo prompts without manual review for up to one minute. Use it only on trusted networks and trusted hosts, disable it when not needed, and avoid enabling it on shared or high-risk machines.
+
 The main VSDuo view shows devices, pending transactions, and SSH hosts together. SSH hosts should be connected from this view so VSDuo can prepare the Duo helper before the Remote - SSH reconnect flow begins.
 
 ![VSDuo activity bar with devices, transactions, and hosts](https://raw.githubusercontent.com/thisisamirv/VSDuo/refs/heads/master/media/GUI.png)
@@ -63,3 +55,15 @@ The main VSDuo view shows devices, pending transactions, and SSH hosts together.
 When a VSDuo-initiated SSH connection starts, the extension opens the localhost helper page in your browser. Keep that page open during the reconnect so you can approve or deny the Duo prompt even while the VS Code window is reloading.
 
 ![VSDuo helper page in the browser](https://raw.githubusercontent.com/thisisamirv/VSDuo/refs/heads/master/media/Helper.png)
+
+## Installation
+
+The extension is now live on [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=thisisamirv.vsduo-auth).
+
+For development, testing, and packaging instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Attribution
+
+This project is inspired by [Auto-2FA](https://github.com/FreshSupaSulley/Auto-2FA/).
+
+Parts of the implementation and supporting ideas were adapted from that project and used here as part of this VS Code extension.
