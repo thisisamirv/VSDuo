@@ -4,6 +4,7 @@ export interface DuoDevice {
     publicRaw: string;
     privateRaw: string;
     name: string;
+    pinHash?: string;
     lastUsedAt?: string;
     clickLevel?: string;
     hotp_secret?: string;

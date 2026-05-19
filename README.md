@@ -8,9 +8,10 @@ VSDuo is a VS Code extension for managing Duo devices from the editor. It polls 
 ## Features
 
 - Add a Duo device from an activation code.
+- Set a required 4-digit PIN for each device during setup.
 - Store Duo device material in VS Code secret storage.
 - View devices and pending transactions in the activity bar.
-- Approve or deny pending Duo transactions.
+- Approve or deny pending Duo transactions with PIN verification.
 - Handle Duo Verified prompts by entering the requested digits.
 - Copy live TOTP codes for devices that expose `hotp_secret`.
 - Start a detached localhost helper page that stays available during Remote SSH window reloads.
@@ -31,7 +32,7 @@ When you run `VSDuo: Add Device`, the extension expects a Duo activation code ra
 8. Open the link in the email.
 9. Copy the activation code from that webpage and paste it into VSDuo.
 
-After that, VSDuo asks you to give the device a name such as `Work iPhone` and stores it in VS Code secret storage.
+After that, VSDuo asks you to give the device a name such as `Work iPhone`, then define a 4-digit device PIN, and stores the protected device data in VS Code secret storage.
 
 ## Remote SSH Integration
 
@@ -43,6 +44,8 @@ Use the `HOSTS` view as the entry point for SSH connections:
 2. Check pending requests in `PENDING TRANSACTIONS` if needed.
 3. Click the target machine in `HOSTS` to connect the current window.
 4. Let VSDuo start the helper page before Remote - SSH begins the window transition.
+
+Before each host connect, VSDuo asks for the active device PIN. The connect flow continues only after correct PIN verification.
 
 Each host also includes an `Auto-Approve (1 min)` checkbox. When enabled for a host, pressing `Connect` starts a detached one-minute auto-approve process instead of opening the helper page, so approvals can continue while the VS Code window reloads during Remote SSH handoff.
 

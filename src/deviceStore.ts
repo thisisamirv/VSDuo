@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { BrowserExportShape, DuoDevice, StoredDeviceData } from "./types";
+import { hashDevicePin } from "./pin";
 import { normalizeStoredData } from "./storedData";
 
 const STORAGE_KEY = "vsduo.devices";
@@ -79,6 +80,36 @@ export class DeviceStore {
         };
         await this.saveData(next);
         return next;
+    }
+
+    public async setDevicePin(pkey: string, pin: string): Promise<StoredDeviceData> {
+        const data = await this.getData();
+        const pinHash = hashDevicePin(pkey, pin);
+        const devices = data.devices.map((device) => device.pkey === pkey ? { ...device, pinHash } : device);
+        if (!devices.some((device) => device.pkey === pkey)) {
+            throw new Error(`Unknown device: ${pkey}`);
+        }
+
+        const next: StoredDeviceData = {
+            ...data,
+            devices,
+        };
+        await this.saveData(next);
+        return next;
+    }
+
+    public async verifyDevicePin(pkey: string, pin: string): Promise<boolean> {
+        const data = await this.getData();
+        const device = data.devices.find((entry) => entry.pkey === pkey);
+        if (!device) {
+            throw new Error(`Unknown device: ${pkey}`);
+        }
+
+        if (!device.pinHash) {
+            return false;
+        }
+
+        return device.pinHash === hashDevicePin(pkey, pin);
     }
 
     public async removeDevice(pkey: string): Promise<StoredDeviceData> {

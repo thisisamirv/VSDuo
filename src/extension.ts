@@ -170,6 +170,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 return;
             }
 
+            const devicePin = await promptForNewDevicePin(deviceName.trim());
+            if (!devicePin) {
+                return;
+            }
+
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
@@ -180,6 +185,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                     progress.report({ message: "Activating Duo device..." });
                     const device = await client.activateDevice(activationCode, deviceName);
                     await store.addDevice(device);
+                    await store.setDevicePin(device.pkey, devicePin);
                 }
             );
 
@@ -221,11 +227,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 return;
             }
 
+            const activeDevice = await getActiveDevice(store);
+            if (!activeDevice) {
+                void vscode.window.showWarningMessage("No active Duo device configured.");
+                return;
+            }
+
+            const unlockedDevice = await requireVerifiedDevicePin(store, activeDevice, `Enter your 4-digit PIN to connect to ${host.name}`);
+            if (!unlockedDevice) {
+                return;
+            }
+
             const autoApproveEnabled = autoApproveOverride ?? hostsProvider.isAutoApproveEnabled(host.name);
             if (autoApproveEnabled) {
                 const mode = vscode.workspace.getConfiguration("vsduo").get<RemoteHelperAutoStartMode>("remoteHelperAutoStart", "backgroundAndOpen");
                 lastHelperDiagnostics = { mode, attempted: false, openedBrowser: false };
-                const started = await startDetachedAutoApprove(context, store, host);
+                const started = await startDetachedAutoApprove(context, unlockedDevice, host);
                 if (!started) {
                     lastHelperDiagnostics = await maybeStartRemoteHelperForConnect(context, store);
                 }
@@ -338,6 +355,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 return;
             }
 
+            const unlockedDevice = await requireVerifiedDevicePin(store, activeDevice, `Enter your 4-digit PIN to approve requests for ${activeDevice.name}`);
+            if (!unlockedDevice) {
+                return;
+            }
+
             const transaction = item?.transaction ?? (await pickTransaction(currentTransactions));
             if (!transaction) {
                 return;
@@ -355,8 +377,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 }
             }
 
-            await client.approveTransaction(activeDevice, currentTransactions, transaction.urgid, verificationCode);
-            await store.markDeviceUsed(activeDevice.pkey);
+            await client.approveTransaction(unlockedDevice, currentTransactions, transaction.urgid, verificationCode);
+            await store.markDeviceUsed(unlockedDevice.pkey);
             await syncViews(true);
             void vscode.window.showInformationMessage("Duo transaction approved.");
         }),
@@ -530,6 +552,69 @@ async function pickHost(hostsProvider: HostTreeProvider): Promise<SshHost | unde
         { placeHolder: "Select the SSH host to connect this window to" }
     );
     return pick?.host;
+}
+
+async function requireVerifiedDevicePin(store: DeviceStore, device: DuoDevice, prompt: string): Promise<DuoDevice | undefined> {
+    const pinnedDevice = await ensureDevicePinConfigured(store, device);
+    if (!pinnedDevice) {
+        return undefined;
+    }
+
+    const enteredPin = await promptForPin(prompt);
+    if (!enteredPin) {
+        return undefined;
+    }
+
+    const verified = await store.verifyDevicePin(pinnedDevice.pkey, enteredPin);
+    if (!verified) {
+        void vscode.window.showErrorMessage("Invalid PIN.");
+        return undefined;
+    }
+
+    return pinnedDevice;
+}
+
+async function ensureDevicePinConfigured(store: DeviceStore, device: DuoDevice): Promise<DuoDevice | undefined> {
+    if (device.pinHash) {
+        return device;
+    }
+
+    const pin = await promptForNewDevicePin(device.name);
+    if (!pin) {
+        return undefined;
+    }
+
+    await store.setDevicePin(device.pkey, pin);
+    const data = await store.getData();
+    return data.devices.find((entry) => entry.pkey === device.pkey);
+}
+
+async function promptForNewDevicePin(deviceName: string): Promise<string | undefined> {
+    const first = await promptForPin(`Set a 4-digit PIN for ${deviceName}`);
+    if (!first) {
+        return undefined;
+    }
+
+    const confirmation = await promptForPin(`Confirm the 4-digit PIN for ${deviceName}`);
+    if (!confirmation) {
+        return undefined;
+    }
+
+    if (first !== confirmation) {
+        void vscode.window.showErrorMessage("PIN confirmation does not match.");
+        return undefined;
+    }
+
+    return first;
+}
+
+async function promptForPin(prompt: string): Promise<string | undefined> {
+    return vscode.window.showInputBox({
+        prompt,
+        password: true,
+        ignoreFocusOut: true,
+        validateInput: (value) => /^\d{4}$/.test(value) ? undefined : "Enter exactly 4 digits.",
+    });
 }
 
 function errorToString(error: unknown): string {
@@ -744,13 +829,7 @@ function isSshHost(value: unknown): value is SshHost {
     return typeof (value as SshHost).name === "string";
 }
 
-async function startDetachedAutoApprove(context: vscode.ExtensionContext, store: DeviceStore, host: SshHost): Promise<boolean> {
-    const activeDevice = await getActiveDevice(store);
-    if (!activeDevice) {
-        void vscode.window.showWarningMessage("Auto-Approve requires an active Duo device. Falling back to helper page.");
-        return false;
-    }
-
+async function startDetachedAutoApprove(context: vscode.ExtensionContext, activeDevice: DuoDevice, host: SshHost): Promise<boolean> {
     try {
         const helperPath = vscode.Uri.joinPath(context.extensionUri, "dist", "autoApproveHelper.js").fsPath;
         const payload = Buffer.from(JSON.stringify(activeDevice), "utf8").toString("base64");

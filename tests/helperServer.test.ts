@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DuoDevice, DuoTransaction, StoredDeviceData } from "../src/types";
 import { HelperClient, startHelperServer } from "../src/helperServer";
+import { hashDevicePin } from "../src/pin";
 
 class FakeHelperClient implements HelperClient {
     public readonly approvals: Array<{ pkey: string; txId: string; verificationCode?: string }> = [];
@@ -33,6 +34,7 @@ function createDevice(overrides: Partial<DuoDevice> = {}): DuoDevice {
         publicRaw: "public",
         privateRaw: "private",
         name: "Work Phone",
+        pinHash: hashDevicePin("device-1", "1234"),
         ...overrides,
     };
 }
@@ -119,6 +121,7 @@ test("helper server approve and deny endpoints call the helper client", async (t
             pkey: fixture.device.pkey,
             urgid: "urgid-1",
             verificationCode: "123",
+            pin: "1234",
         }),
     });
     assert.equal(approve.status, 200);

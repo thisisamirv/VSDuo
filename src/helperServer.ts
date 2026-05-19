@@ -1,4 +1,5 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
+import { hashDevicePin } from "./pin";
 import { DuoDevice, DuoTransaction, StoredDeviceData } from "./types";
 
 export interface HelperTransactionSummary {
@@ -116,6 +117,19 @@ async function handleRequest(
             const urgid = String(body.urgid ?? "").trim();
             if (!urgid) {
                 throw new Error("A transaction id is required.");
+            }
+
+            if (!device.pinHash) {
+                throw new Error("This device does not have a PIN configured.");
+            }
+
+            const pin = typeof body.pin === "string" ? body.pin.trim() : "";
+            if (!/^\d{4}$/.test(pin)) {
+                throw new Error("A valid 4-digit PIN is required.");
+            }
+
+            if (device.pinHash !== hashDevicePin(device.pkey, pin)) {
+                throw new Error("Invalid PIN.");
             }
 
             const verificationCode = typeof body.verificationCode === "string" && body.verificationCode.trim().length
@@ -520,13 +534,15 @@ function renderPage(token: string): string {
           const approveButton = el("button", "", "Approve");
           approveButton.addEventListener("click", async () => {
             try {
+                            const pin = window.prompt("Enter 4-digit PIN for " + device.name, "") || "";
+                            if (!/^\d{4}$/.test(pin)) return;
               let verificationCode;
               if (transaction.verificationDigits) {
                 verificationCode = window.prompt("Enter the " + transaction.verificationDigits + "-digit Duo verification code", "") || "";
                 if (!verificationCode) return;
               }
                             setFlash("Approving " + transaction.title + " on " + device.name + "...");
-              const snapshot = await request("/api/approve", { method: "POST", body: JSON.stringify({ pkey: device.pkey, urgid: transaction.urgid, verificationCode }) });
+                            const snapshot = await request("/api/approve", { method: "POST", body: JSON.stringify({ pkey: device.pkey, urgid: transaction.urgid, verificationCode, pin }) });
               render(snapshot);
                             setFlash("Approved " + transaction.title + " on " + device.name + ".", "success");
                         } catch (error) { setFlash(error instanceof Error ? error.message : String(error), "error"); }
