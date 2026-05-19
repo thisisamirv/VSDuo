@@ -7,7 +7,7 @@ import { DeviceStore } from "./deviceStore";
 import { DuoClient } from "./duoClient";
 import { formatRemoteSshDiagnostics, HandoffDiagnostics, HelperDiagnostics } from "./remoteSshDiagnostics";
 import { runRemoteSshHandoff } from "./remoteSshHandoff";
-import { DeviceItem, DeviceTreeProvider, HostItem, HostTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
+import { DeviceItem, DeviceTreeProvider, HostAutoApproveToggleItem, HostItem, HostTreeProvider, TransactionItem, TransactionTreeProvider } from "./tree";
 import { getResolvedSshConfigPath, getSshHostDiagnostics, loadSshHosts } from "./sshHosts";
 import { DuoDevice, DuoTransaction, StoredDeviceData, SshHost } from "./types";
 
@@ -20,6 +20,7 @@ type RemoteHelperAutoStartMode = "off" | "background" | "backgroundAndOpen";
 
 const REMOTE_HELPER_STATE_KEY = "vsduo.remoteHelper";
 const LAST_USED_HOSTS_KEY = "vsduo.lastUsedHosts";
+const AUTO_APPROVE_HOSTS_KEY = "vsduo.autoApproveHosts";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     const store = new DeviceStore(context);
@@ -27,6 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const devicesProvider = new DeviceTreeProvider();
     const transactionsProvider = new TransactionTreeProvider();
     const hostsProvider = new HostTreeProvider();
+    const hostsView = vscode.window.createTreeView("vsduo.hosts", { treeDataProvider: hostsProvider });
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     statusBar.name = "VSDuo";
     statusBar.command = "vsduo.refreshTransactions";
@@ -36,6 +38,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     let refreshHandle: NodeJS.Timeout | undefined;
     let lastHelperDiagnostics: HelperDiagnostics = { mode: "backgroundAndOpen", attempted: false };
     let lastHandoffDiagnostics: HandoffDiagnostics | undefined;
+
+    hostsProvider.setAutoApproveSelections(context.globalState.get<Record<string, boolean>>(AUTO_APPROVE_HOSTS_KEY, {}));
 
     const syncViews = async (showErrors = false): Promise<void> => {
         try {
@@ -104,7 +108,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider("vsduo.devices", devicesProvider),
         vscode.window.registerTreeDataProvider("vsduo.transactions", transactionsProvider),
-        vscode.window.registerTreeDataProvider("vsduo.hosts", hostsProvider),
+        hostsView,
+        hostsView.onDidChangeCheckboxState(async (event) => {
+            let changed = false;
+            for (const [item, state] of event.items) {
+                if (!(item instanceof HostAutoApproveToggleItem)) {
+                    continue;
+                }
+
+                hostsProvider.setAutoApprove(
+                    item.hostName,
+                    state === vscode.TreeItemCheckboxState.Checked,
+                );
+                changed = true;
+            }
+
+            if (!changed) {
+                return;
+            }
+
+            hostsProvider.refresh();
+            await context.globalState.update(AUTO_APPROVE_HOSTS_KEY, hostsProvider.getAutoApproveSelections());
+        }),
         vscode.commands.registerCommand("vsduo.addDevice", async () => {
             const continueAddDevice = await vscode.window.showInformationMessage(
                 "Get a Duo activation code before continuing.",
@@ -190,13 +215,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             await vscode.env.openExternal(vscode.Uri.parse(getRemoteHelperUrl(state)));
             void vscode.window.showInformationMessage("Opened the VSDuo Remote SSH helper in your browser.");
         }),
-        vscode.commands.registerCommand("vsduo.connectCurrentWindowToSshHost", async (item?: HostItem) => {
-            const host = item?.host ?? await pickHost(hostsProvider);
+        vscode.commands.registerCommand("vsduo.connectCurrentWindowToSshHost", async (item?: HostItem | SshHost, autoApproveOverride?: boolean) => {
+            const host = (item instanceof HostItem ? item.host : isSshHost(item) ? item : undefined) ?? await pickHost(hostsProvider);
             if (!host) {
                 return;
             }
 
-            lastHelperDiagnostics = await maybeStartRemoteHelperForConnect(context, store);
+            const autoApproveEnabled = autoApproveOverride ?? hostsProvider.isAutoApproveEnabled(host.name);
+            if (autoApproveEnabled) {
+                const mode = vscode.workspace.getConfiguration("vsduo").get<RemoteHelperAutoStartMode>("remoteHelperAutoStart", "backgroundAndOpen");
+                lastHelperDiagnostics = { mode, attempted: false, openedBrowser: false };
+                const started = await startDetachedAutoApprove(context, store, host);
+                if (!started) {
+                    lastHelperDiagnostics = await maybeStartRemoteHelperForConnect(context, store);
+                }
+            } else {
+                lastHelperDiagnostics = await maybeStartRemoteHelperForConnect(context, store);
+            }
 
             try {
                 lastHandoffDiagnostics = await connectCurrentWindowToSshHost(host);
@@ -699,4 +734,44 @@ async function markHostUsed(context: vscode.ExtensionContext, hostName: string, 
         ...lastUsedHosts,
         [hostName]: when,
     });
+}
+
+function isSshHost(value: unknown): value is SshHost {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+
+    return typeof (value as SshHost).name === "string";
+}
+
+async function startDetachedAutoApprove(context: vscode.ExtensionContext, store: DeviceStore, host: SshHost): Promise<boolean> {
+    const activeDevice = await getActiveDevice(store);
+    if (!activeDevice) {
+        void vscode.window.showWarningMessage("Auto-Approve requires an active Duo device. Falling back to helper page.");
+        return false;
+    }
+
+    try {
+        const helperPath = vscode.Uri.joinPath(context.extensionUri, "dist", "autoApproveHelper.js").fsPath;
+        const payload = Buffer.from(JSON.stringify(activeDevice), "utf8").toString("base64");
+
+        const child = fork(helperPath, [], {
+            detached: true,
+            execArgv: [],
+            stdio: "ignore",
+            env: {
+                ...process.env,
+                VSDUO_AUTO_APPROVE_DEVICE: payload,
+                VSDUO_AUTO_APPROVE_DURATION_MS: "60000",
+                VSDUO_AUTO_APPROVE_INTERVAL_MS: "2500",
+            },
+        });
+        child.unref();
+
+        void vscode.window.showInformationMessage(`Auto-Approve started for ${host.name} (1 minute).`);
+        return true;
+    } catch (error) {
+        void vscode.window.showWarningMessage(`Unable to start Auto-Approve. Falling back to helper page: ${errorToString(error)}`);
+        return false;
+    }
 }

@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0
+
+### Added
+
+- A dedicated Connect action row under each host in the Hosts view.
+- A per-host Auto-Approve (1 min) checkbox in the Hosts view.
+- Auto-Approve support that runs detached in the background for one minute during host connect, so approvals can continue through Remote SSH window reloads.
+
 ## 0.3.0
 
 ### Added

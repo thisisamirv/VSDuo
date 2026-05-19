@@ -139,11 +139,6 @@ export class HostItem extends vscode.TreeItem {
         ].filter((value): value is string => Boolean(value)).join("\n");
         this.contextValue = "vsduo.host";
         this.iconPath = new vscode.ThemeIcon("remote");
-        this.command = {
-            command: "vsduo.connectCurrentWindowToSshHost",
-            title: "Connect Current Window to SSH Host",
-            arguments: [this],
-        };
     }
 }
 
@@ -155,11 +150,36 @@ class HostDetailItem extends vscode.TreeItem {
     }
 }
 
+export class HostAutoApproveToggleItem extends vscode.TreeItem {
+    public constructor(public readonly hostName: string, enabled: boolean) {
+        super("Auto-Approve (1 min)", vscode.TreeItemCollapsibleState.None);
+        this.contextValue = "vsduo.hostAutoApproveToggle";
+        this.checkboxState = enabled
+            ? vscode.TreeItemCheckboxState.Checked
+            : vscode.TreeItemCheckboxState.Unchecked;
+    }
+}
+
+class HostConnectActionItem extends vscode.TreeItem {
+    public constructor(public readonly host: SshHost, autoApproveEnabled: boolean) {
+        super("Connect", vscode.TreeItemCollapsibleState.None);
+        this.contextValue = "vsduo.hostConnectAction";
+        this.iconPath = new vscode.ThemeIcon("plug");
+        this.description = autoApproveEnabled ? "auto-approve enabled" : undefined;
+        this.command = {
+            command: "vsduo.connectCurrentWindowToSshHost",
+            title: "Connect Current Window to SSH Host",
+            arguments: [host, autoApproveEnabled],
+        };
+    }
+}
+
 export class HostTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
     public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
     private items: vscode.TreeItem[] = [];
     private hosts: SshHost[] = [];
+    private autoApproveByHostName: Record<string, boolean> = {};
 
     public setHosts(hosts: SshHost[]): void {
         this.hosts = hosts
@@ -184,7 +204,7 @@ export class HostTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
     public getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
         if (element instanceof HostItem) {
-            return buildHostDetailItems(element.host);
+            return buildHostDetailItems(element.host, this.isAutoApproveEnabled(element.host.name));
         }
 
         return this.items;
@@ -192,6 +212,32 @@ export class HostTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
     public getHosts(): SshHost[] {
         return this.hosts;
+    }
+
+    public setAutoApproveSelections(selections: Record<string, boolean>): void {
+        this.autoApproveByHostName = { ...selections };
+    }
+
+    public isAutoApproveEnabled(hostName: string): boolean {
+        return Boolean(this.autoApproveByHostName[hostName]);
+    }
+
+    public toggleAutoApprove(hostName: string): boolean {
+        const nextValue = !this.isAutoApproveEnabled(hostName);
+        this.setAutoApprove(hostName, nextValue);
+        this.refresh();
+        return nextValue;
+    }
+
+    public setAutoApprove(hostName: string, enabled: boolean): void {
+        this.autoApproveByHostName = {
+            ...this.autoApproveByHostName,
+            [hostName]: enabled,
+        };
+    }
+
+    public getAutoApproveSelections(): Record<string, boolean> {
+        return { ...this.autoApproveByHostName };
     }
 }
 
@@ -239,8 +285,10 @@ function formatTimestamp(value: string): string {
     return new Date(timestamp).toLocaleString();
 }
 
-function buildHostDetailItems(host: SshHost): vscode.TreeItem[] {
+function buildHostDetailItems(host: SshHost, autoApproveEnabled: boolean): vscode.TreeItem[] {
     return [
+        new HostAutoApproveToggleItem(host.name, autoApproveEnabled),
+        new HostConnectActionItem(host, autoApproveEnabled),
         new HostDetailItem("Host Name:", host.hostname ?? host.name),
         new HostDetailItem("User:", host.user ?? "not set"),
         new HostDetailItem("Port:", host.port ?? "default"),
